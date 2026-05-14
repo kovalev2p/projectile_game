@@ -115,6 +115,22 @@ function platform_defines()
     filter {}
 end
 
+function has_x11_header()
+    -- Пытаемся скомпилировать небольшой тестовый код с заголовком X11/Xlib.h
+    local result = os.outputof([[
+        echo '#include <X11/Xlib.h>
+        int main() { return 0; }' | gcc -E - > /dev/null 2>&1 && echo "found"
+    ]])
+
+    if result == "found" then
+        print("X11/Xlib.h found")
+        return true
+    else
+        print("X11/Xlib.h NOT found")
+        return false
+    end
+end
+
 -- if you don't want to download raylib, then set this to false, and set the raylib dir to where you want raylib to be pulled from, must be full sources.
 downloadRaylib = true
 raylib_dir = "external/raylib-master"
@@ -304,3 +320,25 @@ if (downloadRaylib) then
             compileas "Objective-C"
 
         filter{}
+
+filter {}
+    if has_x11_header() then
+        -- Если заголовок есть, добавляем опции для линковки библиотек X11
+        links { "X11" }
+        print("X11 library linked")
+    else
+        print([[------------------------------------------------------------------------
+ОШИБКА: Заголовочные файлы X11 не найдены.
+
+Пожалуйста, установите необходимые пакеты разработки:
+
+    sudo apt install libx11-dev
+
+А также стандартные библиотеки:
+
+    sudo apt install libx11-dev libasound2-dev libxrandr-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxcursor-dev libxinerama-dev
+
+------------------------------------------------------------------------]])
+    -- Прерывание сборки
+    os.exit(1)
+    end
