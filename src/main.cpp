@@ -215,7 +215,7 @@ void render_scene(
 
 void update_player_height(Texture& player_texture, float& player_height, const float& player_width)
 {
-	player_height = player_width * (player_texture.height / player_texture.width);
+	player_height = (float)player_width * ((float)(player_texture.height) / (float)(player_texture.width));
 }
 
 int main ()
