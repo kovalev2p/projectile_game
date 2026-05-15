@@ -155,7 +155,7 @@ void update_level(std::vector<Projectile>& projectiles, const float level_time)
 }
 
 void render_scene(
-	Texture& wabbit, const int& hit_count, const std::vector<Projectile>& projectiles, 
+	Texture& player_texture, const int& hit_count, const std::vector<Projectile>& projectiles, 
 	const Vector2& player_pos, const float& level_time, const float& player_width, const float& player_height
 )
 {
@@ -173,12 +173,12 @@ void render_scene(
 	
 	// Отрисовка спрайта игрока
 	Vector2 screen_pos = world_to_screen(player_pos, GetScreenWidth(), GetScreenHeight());
-	Rectangle src_rect = { 0, 0, (float)wabbit.width, (float)wabbit.height };
+	Rectangle src_rect = { 0, 0, (float)player_texture.width, (float)player_texture.height };
 	Vector2 origin = { 
 		world_to_screen(player_width, GetScreenWidth(), GetScreenHeight()) / 2.0f,
 		world_to_screen(player_height, GetScreenWidth(), GetScreenHeight()) / 2.0f
 	};
-	DrawTexturePro(wabbit, src_rect, 
+	DrawTexturePro(player_texture, src_rect, 
 		(Rectangle){ 
 			screen_pos.x, 
 			screen_pos.y, 
@@ -223,14 +223,14 @@ int main ()
 	create_main_window();
 	
 	SearchAndSetResourceDir("resources");
-	Texture wabbit = LoadTexture("wabbit_alpha.png");
+	Texture player_texture = LoadTexture("wabbit_alpha.png");
 	
 	// Позиция игрока в игровых координатах (центр мира)
 	Vector2 player_pos = { WORLD_SIZE / 2.0f, WORLD_SIZE / 2.0f };
 	float player_speed = 300.0f; // пикселей в секунду
 	float player_width = 60.0f;
 	float player_height = player_width; // updated proportionally to sprite
-	update_player_height(wabbit, player_height, player_width);
+	update_player_height(player_texture, player_height, player_width);
 
 	// Система снарядов
 	std::vector<Projectile> projectiles;
@@ -252,11 +252,11 @@ int main ()
 		// Генерация новых пуль по уровню
 		update_level(projectiles, level_time);
 
-		render_scene(wabbit, hit_count, projectiles, player_pos, level_time, player_width, player_height);
+		render_scene(player_texture, hit_count, projectiles, player_pos, level_time, player_width, player_height);
 	}
 
 	// cleanup
-	UnloadTexture(wabbit);
+	UnloadTexture(player_texture);
 	CloseWindow();
 	return 0;
 }
