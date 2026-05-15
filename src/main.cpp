@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <vector>
 #include <cmath>
+#include <string>
+#include <format>
 
 #define WORLD_SIZE 1024
 
@@ -22,8 +24,8 @@ Vector2 world_to_screen(Vector2 world_pos, int screen_w, int screen_h)
     float scale = (scale_x < scale_y) ? scale_x : scale_y;
     float view_w = WORLD_SIZE * scale;
     float view_h = WORLD_SIZE * scale;
-    float offset_x = (screen_w - view_w) * 0.5f;
-    float offset_y = (screen_h - view_h) * 0.5f;
+    float offset_x = (screen_w - view_w); // allign to end
+    float offset_y = (screen_h - view_h);
 
     return (Vector2){ offset_x + world_pos.x * scale, offset_y + world_pos.y * scale };
 }
@@ -37,6 +39,20 @@ float world_to_screen(float world_dimension, int screen_w, int screen_h)
     float view_h = WORLD_SIZE * scale;
 
 	return (float)(world_dimension * scale);
+}
+
+void draw_frame(int screen_w, int screen_h)
+// Отрисовка рамки вокруг игровой области
+{
+    // Вычисляем размеры игровой области (как в world_to_screen)
+    float scale_x = (float)screen_w / WORLD_SIZE;
+    float scale_y = (float)screen_h / WORLD_SIZE;
+    float scale = (scale_x < scale_y) ? scale_x : scale_y;
+    float view_w = WORLD_SIZE * scale;
+    float view_h = WORLD_SIZE * scale;
+    float offset_x = (screen_w - view_w); // allign to end
+    float offset_y = (screen_h - view_h);
+    DrawRectangleLines(offset_x, offset_y, view_w, view_h, WHITE);
 }
 
 void create_main_window()
@@ -178,66 +194,83 @@ void update_level(std::vector<Projectile>& projectiles, const float level_time)
     }
 }
 
+void draw_ui(int hit_count, int fps, Vector2 player_pos, float level_time)
+{
+    int start_x = 10;
+    int start_y = 10;
+    int line_height = 25;
+    int font_size = 20;
+
+    // Формируем строки для отображения
+    std::vector<std::string> lines;
+    // lines.push_back("Projectile game");
+    lines.push_back("Collisions: " + std::to_string(hit_count));
+    lines.push_back("FPS: " + std::to_string(fps));
+    lines.push_back("Player pos: (" + std::to_string((int)player_pos.x) + ", " + std::to_string((int)player_pos.y) + ")");
+    lines.push_back("Level time: " + std::format("{:.3f}", level_time) + " s");
+
+    // Отрисовка каждой строки
+    for (size_t i = 0; i < lines.size(); ++i) {
+        DrawText(lines[i].c_str(), start_x, start_y + i * line_height, font_size, WHITE);
+    }
+}
+
 void render_scene(
-	Texture& player_texture, const int& hit_count, const std::vector<Projectile>& projectiles, 
-	const Vector2& player_pos, const float& level_time, const float& player_width, const float& player_height
+    Texture& player_texture, const int& hit_count, const std::vector<Projectile>& projectiles,
+    const Vector2& player_pos, const float& level_time, const float& player_width, const float& player_height
 )
 {
-	BeginDrawing();
-	ClearBackground(BLACK);
-	
-	int screen_width = GetScreenWidth();
-	int screen_height = GetScreenHeight();
-	
-	DrawText(TextFormat("Collisions: %d", hit_count), 200, 200, 20, WHITE); // счётчик столкновений
-	
-	// Отрисовка снарядов (красные круги)
-	for (const auto& p : projectiles) {
-		Vector2 screen_pos = world_to_screen(p.pos, screen_width, screen_height);
-		float screen_radius = world_to_screen(p.r, screen_width, screen_height);
-		DrawCircleV(screen_pos, screen_radius, RED);
-	}
-	
-	// Отрисовка спрайта игрока
-	Vector2 screen_pos = world_to_screen(player_pos, screen_width, screen_height);
-	Rectangle src_rect = { 0, 0, (float)player_texture.width, (float)player_texture.height };
-	Vector2 origin = { 
-		world_to_screen(player_width, screen_width, screen_height) / 2.0f,
-		world_to_screen(player_height, screen_width, screen_height) / 2.0f
-	};
-	DrawTexturePro(player_texture, src_rect, 
-		(Rectangle){ 
-			screen_pos.x, 
-			screen_pos.y, 
-			world_to_screen(player_width, screen_width, screen_height),
-			world_to_screen(player_height, screen_width, screen_height) 
-		},
-		origin, 0.0f, WHITE
-	);
-	
-	// отрисовка хитбокса игрока
-	Vector2 width_height_vector = (Vector2){
-		world_to_screen(player_width, screen_width, screen_height),
-		world_to_screen(player_height, screen_width, screen_height)
-	};
-	Vector2 hitbox_center = world_to_screen(player_pos, screen_width, screen_height) - width_height_vector / 2.0;
-	DrawRectangleLinesEx(
-		(Rectangle){ 
-			hitbox_center.x, 
-			hitbox_center.y, 
-			width_height_vector.x,
-			width_height_vector.y,
-		},
-		2.0f,
-		BLUE
-	);
-	
-	// Отладочная информация (FPS и позиция)
-	DrawText(TextFormat("FPS: %d", GetFPS()), 10, 10, 20, WHITE);
-	DrawText(TextFormat("Pos: (%.1f, %.1f)", player_pos.x, player_pos.y), 10, 35, 20, WHITE);
-	DrawText(TextFormat("Time: %.3f", level_time), 10, 55, 20, WHITE);
+    BeginDrawing();
+    ClearBackground(BLACK);
 
-	EndDrawing(); // ready for next frame
+    int screen_width = GetScreenWidth();
+    int screen_height = GetScreenHeight();
+
+    // Отрисовка снарядов
+    for (const auto& p : projectiles) {
+        Vector2 screen_pos = world_to_screen(p.pos, screen_width, screen_height);
+        float screen_radius = world_to_screen(p.r, screen_width, screen_height);
+        DrawCircleV(screen_pos, screen_radius, RED);
+    }
+
+    // Отрисовка спрайта игрока
+    Vector2 screen_pos = world_to_screen(player_pos, screen_width, screen_height);
+    Rectangle src_rect = { 0, 0, (float)player_texture.width, (float)player_texture.height };
+    Vector2 origin = {
+        world_to_screen(player_width, screen_width, screen_height) / 2.0f,
+        world_to_screen(player_height, screen_width, screen_height) / 2.0f
+    };
+    DrawTexturePro(player_texture, src_rect,
+        (Rectangle){
+            screen_pos.x, 
+			screen_pos.y,
+            world_to_screen(player_width, screen_width, screen_height),
+            world_to_screen(player_height, screen_width, screen_height)
+        },
+        origin, 0.0f, WHITE
+    );
+
+    // Отрисовка хитбокса игрока
+    Vector2 width_height_vector = (Vector2){
+        world_to_screen(player_width, screen_width, screen_height),
+        world_to_screen(player_height, screen_width, screen_height)
+    };
+    Vector2 hitbox_topleft = world_to_screen(player_pos, screen_width, screen_height) - width_height_vector / 2.0;
+    DrawRectangleLinesEx(
+        (Rectangle){
+            hitbox_topleft.x, hitbox_topleft.y,
+            width_height_vector.x, width_height_vector.y
+        },
+        2.0f, 
+		BLUE
+    );
+
+	draw_frame(screen_width, screen_height);
+
+    // Интерфейс (многострочный текст слева)
+    draw_ui(hit_count, GetFPS(), player_pos, level_time);
+
+    EndDrawing();
 }
 
 void update_player_height(Texture& player_texture, float& player_height, const float& player_width)
