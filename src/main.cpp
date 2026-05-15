@@ -35,8 +35,6 @@ float world_to_screen(float world_dimension, int screen_w, int screen_h)
     float scale = (scale_x < scale_y) ? scale_x : scale_y;
     float view_w = WORLD_SIZE * scale;
     float view_h = WORLD_SIZE * scale;
-    float offset_x = (screen_w - view_w) * 0.5f;
-    float offset_y = (screen_h - view_h) * 0.5f;
 
 	return (float)(world_dimension * scale);
 }
