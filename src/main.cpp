@@ -174,20 +174,36 @@ void render_scene(
 	// Отрисовка спрайта игрока
 	Vector2 screen_pos = world_to_screen(player_pos, GetScreenWidth(), GetScreenHeight());
 	Rectangle src_rect = { 0, 0, (float)wabbit.width, (float)wabbit.height };
-	Vector2 origin = { (float)wabbit.width / 2, (float)wabbit.height / 2 };
+	Vector2 origin = { 
+		world_to_screen(player_width, GetScreenWidth(), GetScreenHeight()) / 2.0f,
+		world_to_screen(player_height, GetScreenWidth(), GetScreenHeight()) / 2.0f
+	};
 	DrawTexturePro(wabbit, src_rect, 
-		(Rectangle){ screen_pos.x, screen_pos.y, (float)wabbit.width, (float)wabbit.height },
-		origin, 0.0f, WHITE);
+		(Rectangle){ 
+			screen_pos.x, 
+			screen_pos.y, 
+			world_to_screen(player_width, GetScreenWidth(), GetScreenHeight()),
+			world_to_screen(player_height, GetScreenWidth(), GetScreenHeight()) 
+		},
+		origin, 0.0f, WHITE
+	);
 	
 	// отрисовка хитбокса игрока
 	Vector2 width_height_vector = (Vector2){
-			 world_to_screen(player_width, GetScreenWidth(), GetScreenHeight()),
-			 world_to_screen(player_height, GetScreenWidth(), GetScreenHeight())
-		};
-	DrawRectangleV(
-		world_to_screen(player_pos, GetScreenWidth(), GetScreenHeight()) - width_height_vector / 2.0, 
-		width_height_vector,
-		BLUE);
+		world_to_screen(player_width, GetScreenWidth(), GetScreenHeight()),
+		world_to_screen(player_height, GetScreenWidth(), GetScreenHeight())
+	};
+	Vector2 hitbox_center = world_to_screen(player_pos, GetScreenWidth(), GetScreenHeight()) - width_height_vector / 2.0;
+	DrawRectangleLinesEx(
+		(Rectangle){ 
+			hitbox_center.x, 
+			hitbox_center.y, 
+			width_height_vector.x,
+			width_height_vector.y,
+		},
+		2.0f,
+		BLUE
+	);
 	
 	// Отладочная информация (FPS и позиция)
 	DrawText(TextFormat("FPS: %d", GetFPS()), 10, 10, 20, WHITE);
@@ -212,7 +228,7 @@ int main ()
 	// Позиция игрока в игровых координатах (центр мира)
 	Vector2 player_pos = { WORLD_SIZE / 2.0f, WORLD_SIZE / 2.0f };
 	float player_speed = 300.0f; // пикселей в секунду
-	float player_width = 20.0f;
+	float player_width = 60.0f;
 	float player_height = player_width; // updated proportionally to sprite
 	update_player_height(wabbit, player_height, player_width);
 
