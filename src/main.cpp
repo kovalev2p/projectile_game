@@ -100,7 +100,7 @@ void update_level(std::vector<Projectile>& projectiles, const float level_time)
     static float last_spawn_time = -100.0f;
     const float spawn_interval = 1.5f;
 
-    // каждые 3 секунды создаём 2 пули
+    // каждые spawn_interval секунды создаём пули
     if (level_time - last_spawn_time >= spawn_interval) {
         last_spawn_time = level_time;
 
@@ -113,6 +113,22 @@ void update_level(std::vector<Projectile>& projectiles, const float level_time)
         bullet_2.pos = { 300.0f, 700.0f };
         bullet_2.vel = { 0.0f, -200.0f }; // вверх
         projectiles.push_back(bullet_2);
+
+
+		// статическая пуля для проверки хитбоксов
+		bool has_static = false;
+		for (auto& p : projectiles) {
+			if (p.vel.x==0 && p.vel.y == 0) {
+				has_static = true;
+				break;
+			}
+		}
+		if (!has_static) {
+			Projectile bullet_static;
+			bullet_static.pos = { 600.0f, 700.0f };
+			bullet_static.vel = { 0.0f, 0.0f };
+			projectiles.push_back(bullet_static);
+		}
     }
 }
 
