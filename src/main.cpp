@@ -186,38 +186,41 @@ void render_scene(
 	BeginDrawing();
 	ClearBackground(BLACK);
 	
+	int screen_width = GetScreenWidth();
+	int screen_height = GetScreenHeight();
+	
 	DrawText(TextFormat("Collisions: %d", hit_count), 200, 200, 20, WHITE); // счётчик столкновений
 	
 	// Отрисовка снарядов (красные круги)
 	for (const auto& p : projectiles) {
-		Vector2 screen_pos = world_to_screen(p.pos, GetScreenWidth(), GetScreenHeight());
-		float screen_radius = world_to_screen(p.r, GetScreenWidth(), GetScreenHeight());
+		Vector2 screen_pos = world_to_screen(p.pos, screen_width, screen_height);
+		float screen_radius = world_to_screen(p.r, screen_width, screen_height);
 		DrawCircleV(screen_pos, screen_radius, RED);
 	}
 	
 	// Отрисовка спрайта игрока
-	Vector2 screen_pos = world_to_screen(player_pos, GetScreenWidth(), GetScreenHeight());
+	Vector2 screen_pos = world_to_screen(player_pos, screen_width, screen_height);
 	Rectangle src_rect = { 0, 0, (float)player_texture.width, (float)player_texture.height };
 	Vector2 origin = { 
-		world_to_screen(player_width, GetScreenWidth(), GetScreenHeight()) / 2.0f,
-		world_to_screen(player_height, GetScreenWidth(), GetScreenHeight()) / 2.0f
+		world_to_screen(player_width, screen_width, screen_height) / 2.0f,
+		world_to_screen(player_height, screen_width, screen_height) / 2.0f
 	};
 	DrawTexturePro(player_texture, src_rect, 
 		(Rectangle){ 
 			screen_pos.x, 
 			screen_pos.y, 
-			world_to_screen(player_width, GetScreenWidth(), GetScreenHeight()),
-			world_to_screen(player_height, GetScreenWidth(), GetScreenHeight()) 
+			world_to_screen(player_width, screen_width, screen_height),
+			world_to_screen(player_height, screen_width, screen_height) 
 		},
 		origin, 0.0f, WHITE
 	);
 	
 	// отрисовка хитбокса игрока
 	Vector2 width_height_vector = (Vector2){
-		world_to_screen(player_width, GetScreenWidth(), GetScreenHeight()),
-		world_to_screen(player_height, GetScreenWidth(), GetScreenHeight())
+		world_to_screen(player_width, screen_width, screen_height),
+		world_to_screen(player_height, screen_width, screen_height)
 	};
-	Vector2 hitbox_center = world_to_screen(player_pos, GetScreenWidth(), GetScreenHeight()) - width_height_vector / 2.0;
+	Vector2 hitbox_center = world_to_screen(player_pos, screen_width, screen_height) - width_height_vector / 2.0;
 	DrawRectangleLinesEx(
 		(Rectangle){ 
 			hitbox_center.x, 
