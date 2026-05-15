@@ -10,6 +10,7 @@ struct Projectile // снаярд
 {
     Vector2 pos; // position
     Vector2 vel; // velocity
+	float r; // hitbox radius
 };
 
 Vector2 world_to_screen(Vector2 world_pos, int screen_w, int screen_h)
@@ -22,7 +23,21 @@ Vector2 world_to_screen(Vector2 world_pos, int screen_w, int screen_h)
     float view_h = WORLD_SIZE * scale;
     float offset_x = (screen_w - view_w) * 0.5f;
     float offset_y = (screen_h - view_h) * 0.5f;
+
     return (Vector2){ offset_x + world_pos.x * scale, offset_y + world_pos.y * scale };
+}
+
+float world_to_screen(float world_dimension, int screen_w, int screen_h)
+{
+	float scale_x = (float)screen_w / WORLD_SIZE;
+    float scale_y = (float)screen_h / WORLD_SIZE;
+    float scale = (scale_x < scale_y) ? scale_x : scale_y;
+    float view_w = WORLD_SIZE * scale;
+    float view_h = WORLD_SIZE * scale;
+    float offset_x = (screen_w - view_w) * 0.5f;
+    float offset_y = (screen_h - view_h) * 0.5f;
+
+	return (float)(world_dimension * scale);
 }
 
 void create_main_window()
@@ -107,11 +122,13 @@ void update_level(std::vector<Projectile>& projectiles, const float level_time)
         Projectile bullet;
         bullet.pos = { 700.0f, 700.0f };
         bullet.vel = { 0.0f, -200.0f }; // вверх
+		bullet.r = 5;
         projectiles.push_back(bullet);
 
 		Projectile bullet_2;
         bullet_2.pos = { 300.0f, 700.0f };
         bullet_2.vel = { 0.0f, -200.0f }; // вверх
+		bullet_2.r = 10;
         projectiles.push_back(bullet_2);
 
 
@@ -127,6 +144,7 @@ void update_level(std::vector<Projectile>& projectiles, const float level_time)
 			Projectile bullet_static;
 			bullet_static.pos = { 600.0f, 700.0f };
 			bullet_static.vel = { 0.0f, 0.0f };
+			bullet_static.r = 20;
 			projectiles.push_back(bullet_static);
 		}
     }
@@ -145,7 +163,8 @@ void render_scene(
 	// Отрисовка снарядов (красные круги)
 	for (const auto& p : projectiles) {
 		Vector2 screen_pos = world_to_screen(p.pos, GetScreenWidth(), GetScreenHeight());
-		DrawCircleV(screen_pos, 5.0f, RED);
+		float screen_radius = world_to_screen(p.r, GetScreenWidth(), GetScreenHeight());
+		DrawCircleV(screen_pos, screen_radius, RED);
 	}
 	
 	// Отрисовка спрайта игрока
