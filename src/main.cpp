@@ -143,6 +143,7 @@ void update_level(std::vector<Projectile>& projectiles, const float level_time)
 {
     static float last_spawn_time = -100.0f;
     const float spawn_interval = 1.5f;
+	const float small_number = 1e-6f;
 
     // каждые spawn_interval секунды создаём пули
     if (level_time - last_spawn_time >= spawn_interval) {
@@ -164,7 +165,7 @@ void update_level(std::vector<Projectile>& projectiles, const float level_time)
 		// статическая пуля для проверки хитбоксов
 		bool has_static = false;
 		for (auto& p : projectiles) {
-			if (p.vel.x==0 && p.vel.y == 0) {
+			if (fabs(p.vel.x) < small_number && fabs(p.vel.y) < small_number) {
 				has_static = true;
 				break;
 			}
