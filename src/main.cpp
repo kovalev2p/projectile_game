@@ -3,6 +3,7 @@
 #include <raymath.h>
 #include <algorithm>
 #include <vector>
+#include <cmath>
 
 #define WORLD_SIZE 1024
 
@@ -76,15 +77,40 @@ void move_player_wasd(Vector2& player_pos, float& player_speed)
 	if (player_pos.y > WORLD_SIZE) player_pos.y = WORLD_SIZE;
 }
 
+bool circle_rect_collision(Vector2 circle_center, float radius,
+                           Vector2 rect_center, float rect_width, float rect_height)
+{
+	// adapted from: https://stackoverflow.com/a/402010
+
+    // Находим вектор от центра прямоугольника до центра круга
+    float dx = std::abs(circle_center.x - rect_center.x);
+    float dy = std::abs(circle_center.y - rect_center.y);
+
+    // Половина ширины и высоты прямоугольника
+    float half_w = rect_width * 0.5f;
+    float half_h = rect_height * 0.5f;
+
+    // Если круг слишком далеко по горизонтали или вертикали, пересечения нет
+    if (dx > half_w + radius) return false;
+    if (dy > half_h + radius) return false;
+
+    // Если центр круга достаточно близко к любой из осей, пересечение гарантировано
+    if (dx <= half_w) return true;
+    if (dy <= half_h) return true;
+
+    // Проверка на попадание в угол
+    float dx_corner = dx - half_w;
+    float dy_corner = dy - half_h;
+    float corner_dist_sq = dx_corner * dx_corner + dy_corner * dy_corner;
+    return corner_dist_sq <= (radius * radius);
+}
+
 int update_projectiles(std::vector<Projectile>& projectiles, const Vector2& player_pos, const float& player_width, const float& player_height)
 // Обновление пуль (физика): движение, удаление за границами, проверка столкновений с игроком
 // returns: hit_count (per this frame)
 {
     float dt = GetFrameTime();
     int hit_count = 0;
-
-	const float pw2 = player_width / 2.0;
-	const float ph2 = player_height / 2.0; 
 
     for (auto& p : projectiles) {
         // движение
@@ -93,8 +119,7 @@ int update_projectiles(std::vector<Projectile>& projectiles, const Vector2& play
 
         // столкновение с игроком (круглая пуля, прямоугольный хитбокс игрока)
         if (
-			(p.pos.x - (player_pos.x + pw2) < p.r) && ((player_pos.x - pw2) - p.pos.x < p.r) &&
-			(p.pos.y - (player_pos.y + ph2) < p.r) && ((player_pos.y - ph2) - p.pos.y < p.r)
+			circle_rect_collision(p.pos, p.r, player_pos, player_width, player_height)
 		){
             hit_count++;
             p.pos.x = -2*WORLD_SIZE; // помечаем как "мёртвую", будет удалена при очистке
