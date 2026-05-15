@@ -4,6 +4,10 @@
 
 #define WORLD_SIZE 1024
 
+const int default_window_width = 800;
+const int default_window_height = 600;
+const int min_window_width = 640;
+const int min_window_height = 480;
 
 Vector2 world_to_screen(Vector2 world_pos, int screen_w, int screen_h)
 // Преобразование игровых координат в экранные с сохранением пропорций
@@ -20,8 +24,9 @@ Vector2 world_to_screen(Vector2 world_pos, int screen_w, int screen_h)
 
 int main ()
 {
-	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI);
-	InitWindow(800, 600, "Hello Raylib"); // Create the window and OpenGL context
+	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI | FLAG_WINDOW_RESIZABLE);
+	InitWindow(default_window_width, default_window_height, "Hello Raylib"); // Create the window and OpenGL context
+	SetWindowMinSize(min_window_width, min_window_height);
 	SearchAndSetResourceDir("resources");
 
 	Texture wabbit = LoadTexture("wabbit_alpha.png");
