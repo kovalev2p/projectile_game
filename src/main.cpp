@@ -98,15 +98,21 @@ void update_level(std::vector<Projectile>& projectiles, const float level_time)
 // Уровень: генерирует пули в соответсвии с паттерном (по расписанию)
 {
     static float last_spawn_time = -100.0f;
-    const float spawn_interval = 3.0f;
+    const float spawn_interval = 1.5f;
 
-    // каждые 3 секунды создаём пулю в (700, 512), летящую вверх (скорость -200 по Y)
+    // каждые 3 секунды создаём 2 пули
     if (level_time - last_spawn_time >= spawn_interval) {
         last_spawn_time = level_time;
+
         Projectile bullet;
-        bullet.pos = { 700.0f, 512.0f };
+        bullet.pos = { 700.0f, 700.0f };
         bullet.vel = { 0.0f, -200.0f }; // вверх
         projectiles.push_back(bullet);
+
+		Projectile bullet_2;
+        bullet_2.pos = { 300.0f, 700.0f };
+        bullet_2.vel = { 0.0f, -200.0f }; // вверх
+        projectiles.push_back(bullet_2);
     }
 }
 
