@@ -110,6 +110,38 @@ void update_level(std::vector<Projectile>& projectiles, const float level_time)
     }
 }
 
+void render_scene(
+	Texture& wabbit, const int& hit_count, const std::vector<Projectile>& projectiles, 
+	const Vector2& player_pos, const float& level_time
+)
+{
+	BeginDrawing();
+	ClearBackground(BLACK);
+	
+	DrawText(TextFormat("Collisions: %d", hit_count), 200, 200, 20, WHITE); // счётчик столкновений
+	
+	// Отрисовка снарядов (красные круги)
+	for (const auto& p : projectiles) {
+		Vector2 screen_pos = world_to_screen(p.pos, GetScreenWidth(), GetScreenHeight());
+		DrawCircleV(screen_pos, 5.0f, RED);
+	}
+	
+	// Отрисовка спрайта игрока
+	Vector2 screen_pos = world_to_screen(player_pos, GetScreenWidth(), GetScreenHeight());
+	Rectangle src_rect = { 0, 0, (float)wabbit.width, (float)wabbit.height };
+	Vector2 origin = { (float)wabbit.width / 2, (float)wabbit.height / 2 };
+	DrawTexturePro(wabbit, src_rect, 
+		(Rectangle){ screen_pos.x, screen_pos.y, (float)wabbit.width, (float)wabbit.height },
+		origin, 0.0f, WHITE);
+
+	// Отладочная информация (FPS и позиция)
+	DrawText(TextFormat("FPS: %d", GetFPS()), 10, 10, 20, WHITE);
+	DrawText(TextFormat("Pos: (%.1f, %.1f)", player_pos.x, player_pos.y), 10, 35, 20, WHITE);
+	DrawText(TextFormat("Time: %.3f", level_time), 10, 55, 20, WHITE);
+
+	EndDrawing(); // ready for next frame
+}
+
 int main ()
 {
 	create_main_window();
@@ -144,31 +176,7 @@ int main ()
 		// Генерация новых пуль по уровню
 		update_level(projectiles, level_time);
 
-		BeginDrawing();
-		ClearBackground(BLACK);
-		
-		DrawText(TextFormat("Collisions: %d", hit_count), 200, 200, 20, WHITE); // счётчик столкновений
-		
-		// Отрисовка снарядов (красные круги)
-		for (const auto& p : projectiles) {
-			Vector2 screen_pos = world_to_screen(p.pos, GetScreenWidth(), GetScreenHeight());
-			DrawCircleV(screen_pos, 5.0f, RED);
-		}
-		
-		// Отрисовка спрайта игрока
-		Vector2 screen_pos = world_to_screen(player_pos, GetScreenWidth(), GetScreenHeight());
-		Rectangle src_rect = { 0, 0, (float)wabbit.width, (float)wabbit.height };
-		Vector2 origin = { (float)wabbit.width / 2, (float)wabbit.height / 2 };
-		DrawTexturePro(wabbit, src_rect, 
-			(Rectangle){ screen_pos.x, screen_pos.y, (float)wabbit.width, (float)wabbit.height },
-			origin, 0.0f, WHITE);
-
-		// Отладочная информация (FPS и позиция)
-		DrawText(TextFormat("FPS: %d", GetFPS()), 10, 10, 20, WHITE);
-		DrawText(TextFormat("Pos: (%.1f, %.1f)", player_pos.x, player_pos.y), 10, 35, 20, WHITE);
-		DrawText(TextFormat("Time: %.3f", level_time), 10, 55, 20, WHITE);
-
-		EndDrawing(); // ready for next frame
+		render_scene(wabbit, hit_count, projectiles, player_pos, level_time);
 	}
 
 	// cleanup
