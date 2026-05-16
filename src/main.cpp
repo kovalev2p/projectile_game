@@ -74,7 +74,7 @@ void draw_frame(int screen_w, int screen_h)
 
 void create_main_window()
 {
-	const int default_window_width = 800;
+	const int default_window_width = 850;
 	const int default_window_height = 600;
 	const int min_window_width = 640;
 	const int min_window_height = 480;
@@ -230,6 +230,7 @@ void draw_ui(int hit_count, int fps, Vector2 player_pos, float level_time)
     // lines.push_back("Projectile game");
     lines.push_back("Collisions: " + std::to_string(hit_count));
     lines.push_back("FPS: " + std::to_string(fps));
+    lines.push_back("Screen res: (" + std::to_string(GetScreenWidth()) + ", " + std::to_string(GetScreenHeight()) + ")");
     lines.push_back("Player pos: (" + std::to_string((int)player_pos.x) + ", " + std::to_string((int)player_pos.y) + ")");
     lines.push_back("Level time: " + std::format("{:.3f}", level_time) + " s");
 
