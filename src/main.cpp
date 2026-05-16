@@ -12,7 +12,8 @@
 // Состояния игры
 enum class GameState {
     MENU,
-    PLAYING
+    PLAYING,
+    GAME_OVER
 };
 
 // Идентификаторы уровней
@@ -154,7 +155,7 @@ bool circle_rect_collision(Vector2 circle_center, float radius,
     return corner_dist_sq <= (radius * radius);
 }
 
-void update_projectiles(std::vector<Projectile>& projectiles, Player& player)
+void update_projectiles(std::vector<Projectile>& projectiles, Player& player, GameState& game_state)
 // Обновление пуль (физика): движение, удаление за границами, проверка столкновений с игроком
 {
     float dt = GetFrameTime();
@@ -181,7 +182,8 @@ void update_projectiles(std::vector<Projectile>& projectiles, Player& player)
         });
     projectiles.erase(iter, projectiles.end());
 
-    player.hit(hit_count);
+    bool dead = player.hit(hit_count);
+    if (dead) game_state = GameState::GAME_OVER;
 }
 
 void level_test_hp(std::vector<Projectile>& projectiles, const float level_time, const bool reset_level, Player& player)
@@ -267,7 +269,7 @@ void update_level(std::vector<Projectile>& projectiles, const float level_time, 
     }
 }
 
-void draw_ui(const Player& player, float level_time)
+void draw_ui(const Player& player, float level_time, const GameState game_state)
 {
     int start_x = 10;
     int start_y = 10;
@@ -284,6 +286,7 @@ void draw_ui(const Player& player, float level_time)
     lines.push_back("Level time: " + std::format("{:.3f}", level_time) + " s");
     lines.push_back("HP: " + std::format("{}", player.health));
     if (player.immortal) lines.push_back("Immortal");
+    if (game_state == GameState::GAME_OVER) lines.push_back("Game over!");
 
     // Отрисовка каждой строки
     for (size_t i = 0; i < lines.size(); ++i) {
@@ -291,7 +294,7 @@ void draw_ui(const Player& player, float level_time)
     }
 }
 
-void render_scene(Texture& player_texture, const std::vector<Projectile>& projectiles, const Player& player, float level_time)
+void render_scene(Texture& player_texture, const std::vector<Projectile>& projectiles, const Player& player, float level_time, const GameState game_state)
 {
     BeginDrawing();
     ClearBackground(BLACK);
@@ -340,7 +343,7 @@ void render_scene(Texture& player_texture, const std::vector<Projectile>& projec
 	draw_frame(screen_width, screen_height);
 
     // Интерфейс (многострочный текст слева)
-    draw_ui(player, level_time);
+    draw_ui(player, level_time, game_state);
 
     EndDrawing();
 }
@@ -443,12 +446,13 @@ int main ()
 		
 			move_player_wasd(player);
             
-            // Обновление пуль (hit_count обновляется внутри)
-			update_projectiles(projectiles, player);
-            
             // Генерация новых пуль по уровню
+            // и установка параметров уровня (стартовое HP)
 			update_level(projectiles, level_time, current_level, reset_level, player);
             reset_level = false;
+
+            // Обновление пуль (hit_count обновляется внутри)
+			update_projectiles(projectiles, player, state);
 
 			if (IsKeyPressed(KEY_ESCAPE))
 			{
@@ -456,8 +460,13 @@ int main ()
 				// projectiles и hit_count сбросятся при следующем запуске уровня
 			}
 
-			render_scene(player_texture, projectiles, player, level_time);
+			render_scene(player_texture, projectiles, player, level_time, state);
 		}
+        else if (state == GameState::GAME_OVER)
+        {
+            if (IsKeyPressed(KEY_ESCAPE)) state = GameState::MENU;
+            render_scene(player_texture, projectiles, player, level_time, state);
+        }
 	}
 
 	// cleanup
