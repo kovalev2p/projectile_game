@@ -9,6 +9,23 @@
 
 #define WORLD_SIZE 1024
 
+// Состояния игры
+enum class GameState {
+    MENU,
+    PLAYING
+};
+
+// Идентификаторы уровней
+enum class LevelId {
+    EMPTY = 0,
+    TEST = 1
+};
+
+const std::vector<std::string> level_names = {
+    "Empty Level",
+    "Test Level"
+};
+
 struct Projectile // снаярд
 {
     Vector2 pos; // position
@@ -151,9 +168,8 @@ int update_projectiles(std::vector<Projectile>& projectiles, const Vector2& play
     return hit_count;
 }
 
-
-void update_level(std::vector<Projectile>& projectiles, const float level_time)
-// Уровень: генерирует пули в соответсвии с паттерном (по расписанию)
+void level_test(std::vector<Projectile>& projectiles, const float level_time)
+// Логика тестового уровня
 {
     static float last_spawn_time = -100.0f;
     const float spawn_interval = 1.5f;
@@ -175,7 +191,6 @@ void update_level(std::vector<Projectile>& projectiles, const float level_time)
 		bullet_2.r = 10;
         projectiles.push_back(bullet_2);
 
-
 		// статическая пуля для проверки хитбоксов
 		bool has_static = false;
 		for (auto& p : projectiles) {
@@ -192,6 +207,15 @@ void update_level(std::vector<Projectile>& projectiles, const float level_time)
 			projectiles.push_back(bullet_static);
 		}
     }
+}
+
+void update_level(std::vector<Projectile>& projectiles, const float level_time, LevelId level_id)
+// Диспетчеризация уровней
+{
+    if (level_id == LevelId::TEST) {
+        level_test(projectiles, level_time);
+    }
+    // LevelId::EMPTY — пустой уровень, снаярды не нужно создавать
 }
 
 void draw_ui(int hit_count, int fps, Vector2 player_pos, float level_time)
@@ -243,7 +267,7 @@ void render_scene(
     DrawTexturePro(player_texture, src_rect,
         (Rectangle){
             screen_pos.x, 
-			screen_pos.y,
+            screen_pos.y,
             world_to_screen(player_width, screen_width, screen_height),
             world_to_screen(player_height, screen_width, screen_height)
         },
@@ -261,8 +285,7 @@ void render_scene(
             hitbox_topleft.x, hitbox_topleft.y,
             width_height_vector.x, width_height_vector.y
         },
-        2.0f, 
-		BLUE
+        2.0f, BLUE
     );
 
 	draw_frame(screen_width, screen_height);
@@ -276,6 +299,32 @@ void render_scene(
 void update_player_height(Texture& player_texture, float& player_height, const float& player_width)
 {
 	player_height = (float)player_width * ((float)(player_texture.height) / (float)(player_texture.width));
+}
+
+void draw_menu(int selected_level)
+{
+    int screen_width = GetScreenWidth();
+    int screen_height = GetScreenHeight();
+    int start_x = screen_width - 400;
+    int start_y = screen_height / 2 - (level_names.size() * 30) / 2;
+    int line_height = 35;
+    int font_size = 25;
+
+    DrawText("SELECT LEVEL", start_x, start_y - 40, font_size, YELLOW);
+    for (size_t i = 0; i < level_names.size(); ++i) {
+        std::string prefix = (i == (size_t)selected_level) ? "> " : "  ";
+        std::string line = prefix + level_names[i];
+        Color color = (i == (size_t)selected_level) ? GREEN : WHITE;
+        DrawText(line.c_str(), start_x, start_y + i * line_height, font_size, color);
+    }
+}
+
+void reset_game_state(std::vector<Projectile>& projectiles, int& hit_count, float& level_time, Vector2& player_pos)
+{
+    projectiles.clear();
+    hit_count = 0;
+    level_time = 0.0f;
+    player_pos = { WORLD_SIZE / 2.0f, WORLD_SIZE / 2.0f };
 }
 
 int main ()
@@ -297,22 +346,64 @@ int main ()
 	int hit_count = 0;
 	float level_time = 0.0f;
 
-	// game loop
-	while (!WindowShouldClose()) // run the loop until the user presses ESCAPE or presses the Close button on the window
-	{
-		float dt = GetFrameTime();
-		level_time += dt;
-		
-		move_player_wasd(player_pos, player_speed);
-		
-		// Обновление пуль и получение количества попаданий
-		int hits = update_projectiles(projectiles, player_pos, player_width, player_height);
-		hit_count += hits;
-		
-		// Генерация новых пуль по уровню
-		update_level(projectiles, level_time);
+	// Меню и состояния
+	GameState state = GameState::MENU;
+	int selected_level = 0;
+	LevelId current_level = LevelId::EMPTY; // временное значение, будет перезаписано при старте
 
-		render_scene(player_texture, hit_count, projectiles, player_pos, level_time, player_width, player_height);
+    SetExitKey(KEY_NULL); // don't close by ESC
+	// game loop
+	while (!WindowShouldClose())
+	{
+		if (state == GameState::MENU)
+		{
+			// Управление в меню
+			if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W) || IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A))
+				selected_level = (selected_level - 1 + level_names.size()) % level_names.size();
+			if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S) || IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D))
+				selected_level = (selected_level + 1) % level_names.size();
+			if (IsKeyPressed(KEY_ENTER))
+			{
+				current_level = static_cast<LevelId>(selected_level);
+				reset_game_state(projectiles, hit_count, level_time, player_pos);
+				state = GameState::PLAYING;
+			}
+			if (IsKeyPressed(KEY_ESCAPE))
+			{
+				break; // close window
+			}
+
+			// Отрисовка меню
+			BeginDrawing();
+			ClearBackground(BLACK);
+			draw_frame(GetScreenWidth(), GetScreenHeight());
+			// рисуем только FPS в левом верхнем углу
+			DrawText(TextFormat("FPS: %d", GetFPS()), 10, 10, 20, WHITE);
+			draw_menu(selected_level);
+			EndDrawing();
+		}
+		else if (state == GameState::PLAYING)
+		{
+			float dt = GetFrameTime();
+			level_time += dt;
+		
+			move_player_wasd(player_pos, player_speed);
+            
+            // Обновление пуль и получение количества попаданий
+			int hits = update_projectiles(projectiles, player_pos, player_width, player_height);
+			hit_count += hits;
+            
+            // Генерация новых пуль по уровню
+			update_level(projectiles, level_time, current_level);
+
+			if (IsKeyPressed(KEY_ESCAPE))
+			{
+				state = GameState::MENU;
+				// projectiles и hit_count сбросятся при следующем запуске уровня
+			}
+
+			render_scene(player_texture, hit_count, projectiles, player_pos, level_time, player_width, player_height);
+		}
 	}
 
 	// cleanup
