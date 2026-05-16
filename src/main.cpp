@@ -513,8 +513,9 @@ int main ()
 		else if (state == GameState::PLAYING)
 		{
 			float dt = GetFrameTime();
+            if (dt > 0.5) dt = 0.5; // allows to calc time more properly while game paused (for debug and to prevent cheating)
 			level_time += dt;
-		
+            
 			move_player_wasd(player);
             
             // Генерация новых пуль по уровню
