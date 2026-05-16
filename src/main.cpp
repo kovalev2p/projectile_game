@@ -168,10 +168,15 @@ int update_projectiles(std::vector<Projectile>& projectiles, const Vector2& play
     return hit_count;
 }
 
-void level_test(std::vector<Projectile>& projectiles, const float level_time)
+void level_test(std::vector<Projectile>& projectiles, const float level_time, const bool reset_level)
 // Логика тестового уровня
 {
-    static float last_spawn_time = -100.0f;
+    // Переменные уровня
+    static float last_spawn_time;
+    if (reset_level) {
+        last_spawn_time = -100.0f;
+    }
+
     const float spawn_interval = 1.5f;
 	const float small_number = 1e-6f;
 
@@ -209,11 +214,11 @@ void level_test(std::vector<Projectile>& projectiles, const float level_time)
     }
 }
 
-void update_level(std::vector<Projectile>& projectiles, const float level_time, LevelId level_id)
+void update_level(std::vector<Projectile>& projectiles, const float level_time, LevelId level_id, const bool reset_level)
 // Диспетчеризация уровней
 {
     if (level_id == LevelId::TEST) {
-        level_test(projectiles, level_time);
+        level_test(projectiles, level_time, reset_level);
     }
     // LevelId::EMPTY — пустой уровень, снаярды не нужно создавать
 }
@@ -351,6 +356,7 @@ int main ()
 	GameState state = GameState::MENU;
 	int selected_level = 0;
 	LevelId current_level = LevelId::EMPTY; // временное значение, будет перезаписано при старте
+    bool reset_level = true;
 
     SetExitKey(KEY_NULL); // don't close by ESC
 	// game loop
@@ -368,6 +374,7 @@ int main ()
 				current_level = static_cast<LevelId>(selected_level);
 				reset_game_state(projectiles, hit_count, level_time, player_pos);
 				state = GameState::PLAYING;
+                reset_level = true;
 			}
 			if (IsKeyPressed(KEY_ESCAPE))
 			{
@@ -395,7 +402,8 @@ int main ()
 			hit_count += hits;
             
             // Генерация новых пуль по уровню
-			update_level(projectiles, level_time, current_level);
+			update_level(projectiles, level_time, current_level, reset_level);
+            reset_level = false;
 
 			if (IsKeyPressed(KEY_ESCAPE))
 			{
