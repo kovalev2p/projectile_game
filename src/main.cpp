@@ -182,13 +182,14 @@ void update_projectiles(std::vector<Projectile>& projectiles, Player& player)
     player.hit(hit_count);
 }
 
-void level_test(std::vector<Projectile>& projectiles, const float level_time, const bool reset_level)
+void level_test(std::vector<Projectile>& projectiles, const float level_time, const bool reset_level, Player& player)
 // Логика тестового уровня
 {
     // Переменные уровня
     static float last_spawn_time;
     if (reset_level) {
         last_spawn_time = -100.0f;
+        player.health = 3;
     }
 
     const float spawn_interval = 1.5f;
@@ -228,11 +229,11 @@ void level_test(std::vector<Projectile>& projectiles, const float level_time, co
     }
 }
 
-void update_level(std::vector<Projectile>& projectiles, const float level_time, LevelId level_id, const bool reset_level)
+void update_level(std::vector<Projectile>& projectiles, const float level_time, LevelId level_id, const bool reset_level, Player& player)
 // Диспетчеризация уровней
 {
     if (level_id == LevelId::TEST) {
-        level_test(projectiles, level_time, reset_level);
+        level_test(projectiles, level_time, reset_level, player);
     }
     // LevelId::EMPTY — пустой уровень, снаярды не нужно создавать
 }
@@ -252,6 +253,7 @@ void draw_ui(const Player& player, float level_time)
     lines.push_back("Screen res: (" + std::to_string(GetScreenWidth()) + ", " + std::to_string(GetScreenHeight()) + ")");
     lines.push_back("Player pos: (" + std::format("{:.1f}", player.pos.x) + ", " + std::format("{:.1f}", player.pos.y) + ")");
     lines.push_back("Level time: " + std::format("{:.3f}", level_time) + " s");
+    lines.push_back("HP: " + std::format("{}", player.health));
 
     // Отрисовка каждой строки
     for (size_t i = 0; i < lines.size(); ++i) {
@@ -414,7 +416,7 @@ int main ()
 			update_projectiles(projectiles, player);
             
             // Генерация новых пуль по уровню
-			update_level(projectiles, level_time, current_level, reset_level);
+			update_level(projectiles, level_time, current_level, reset_level, player);
             reset_level = false;
 
 			if (IsKeyPressed(KEY_ESCAPE))
