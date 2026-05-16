@@ -46,7 +46,7 @@ class Player
 
         bool hit(int damage) {
             if (damage>0) hit_count += damage;
-            if (!immortal) health -= damage;
+            if ((!immortal) || (damage<0)) health -= damage;
             return (!immortal) && (health <= 0);
         }
 };
@@ -100,7 +100,7 @@ void create_main_window()
 	SetWindowMinSize(min_window_width, min_window_height);
 }
 
-void move_player_wasd(Vector2& player_pos, float& player_speed)
+void move_player_wasd(Player& player)
 {
 	// Время с прошлого кадра
 	float dt = GetFrameTime();
@@ -114,14 +114,14 @@ void move_player_wasd(Vector2& player_pos, float& player_speed)
 	if (move.x != 0 || move.y != 0) move = Vector2Normalize(move); // нормализация скорости
 
 	// Обновление позиции
-	player_pos.x += move.x * player_speed * dt;
-	player_pos.y += move.y * player_speed * dt;
+	player.pos.x += move.x * player.speed * dt;
+	player.pos.y += move.y * player.speed * dt;
 
 	// Ограничение границами мира
-	if (player_pos.x < 0) player_pos.x = 0;
-	if (player_pos.x > WORLD_SIZE) player_pos.x = WORLD_SIZE;
-	if (player_pos.y < 0) player_pos.y = 0;
-	if (player_pos.y > WORLD_SIZE) player_pos.y = WORLD_SIZE;
+	if (player.pos.x < 0) player.pos.x = 0;
+	if (player.pos.x > WORLD_SIZE) player.pos.x = WORLD_SIZE;
+	if (player.pos.y < 0) player.pos.y = 0;
+	if (player.pos.y > WORLD_SIZE) player.pos.y = WORLD_SIZE;
 }
 
 bool circle_rect_collision(Vector2 circle_center, float radius,
@@ -152,9 +152,8 @@ bool circle_rect_collision(Vector2 circle_center, float radius,
     return corner_dist_sq <= (radius * radius);
 }
 
-int update_projectiles(std::vector<Projectile>& projectiles, const Vector2& player_pos, const float& player_width, const float& player_height)
+void update_projectiles(std::vector<Projectile>& projectiles, Player& player)
 // Обновление пуль (физика): движение, удаление за границами, проверка столкновений с игроком
-// returns: hit_count (per this frame)
 {
     float dt = GetFrameTime();
     int hit_count = 0;
@@ -165,9 +164,8 @@ int update_projectiles(std::vector<Projectile>& projectiles, const Vector2& play
         p.pos.y += p.vel.y * dt;
 
         // столкновение с игроком (круглая пуля, прямоугольный хитбокс игрока)
-        if (
-			circle_rect_collision(p.pos, p.r, player_pos, player_width, player_height)
-		){
+        if (circle_rect_collision(p.pos, p.r, player.pos, player.width, player.height))
+		{
             hit_count++;
             p.pos.x = -2*WORLD_SIZE; // помечаем как "мёртвую", будет удалена при очистке
         }
@@ -181,7 +179,7 @@ int update_projectiles(std::vector<Projectile>& projectiles, const Vector2& play
         });
     projectiles.erase(iter, projectiles.end());
 
-    return hit_count;
+    player.hit(hit_count);
 }
 
 void level_test(std::vector<Projectile>& projectiles, const float level_time, const bool reset_level)
@@ -239,7 +237,7 @@ void update_level(std::vector<Projectile>& projectiles, const float level_time, 
     // LevelId::EMPTY — пустой уровень, снаярды не нужно создавать
 }
 
-void draw_ui(int hit_count, int fps, Vector2 player_pos, float level_time)
+void draw_ui(const Player& player, float level_time)
 {
     int start_x = 10;
     int start_y = 10;
@@ -249,10 +247,10 @@ void draw_ui(int hit_count, int fps, Vector2 player_pos, float level_time)
     // Формируем строки для отображения
     std::vector<std::string> lines;
     // lines.push_back("Projectile game");
-    lines.push_back("Collisions: " + std::to_string(hit_count));
-    lines.push_back("FPS: " + std::to_string(fps));
+    lines.push_back("Collisions: " + std::to_string(player.hit_count));
+    lines.push_back("FPS: " + std::to_string(GetFPS()));
     lines.push_back("Screen res: (" + std::to_string(GetScreenWidth()) + ", " + std::to_string(GetScreenHeight()) + ")");
-    lines.push_back("Player pos: (" + std::format("{:.1f}", player_pos.x) + ", " + std::format("{:.1f}", player_pos.y) + ")");
+    lines.push_back("Player pos: (" + std::format("{:.1f}", player.pos.x) + ", " + std::format("{:.1f}", player.pos.y) + ")");
     lines.push_back("Level time: " + std::format("{:.3f}", level_time) + " s");
 
     // Отрисовка каждой строки
@@ -261,10 +259,7 @@ void draw_ui(int hit_count, int fps, Vector2 player_pos, float level_time)
     }
 }
 
-void render_scene(
-    Texture& player_texture, const int& hit_count, const std::vector<Projectile>& projectiles,
-    const Vector2& player_pos, const float& level_time, const float& player_width, const float& player_height
-)
+void render_scene(Texture& player_texture, const std::vector<Projectile>& projectiles, const Player& player, float level_time)
 {
     BeginDrawing();
     ClearBackground(BLACK);
@@ -280,28 +275,28 @@ void render_scene(
     }
 
     // Отрисовка спрайта игрока
-    Vector2 screen_pos = world_to_screen(player_pos, screen_width, screen_height);
+    Vector2 screen_pos = world_to_screen(player.pos, screen_width, screen_height);
     Rectangle src_rect = { 0, 0, (float)player_texture.width, (float)player_texture.height };
     Vector2 origin = {
-        world_to_screen(player_width, screen_width, screen_height) / 2.0f,
-        world_to_screen(player_height, screen_width, screen_height) / 2.0f
+        world_to_screen(player.width, screen_width, screen_height) / 2.0f,
+        world_to_screen(player.height, screen_width, screen_height) / 2.0f
     };
     DrawTexturePro(player_texture, src_rect,
         (Rectangle){
             screen_pos.x, 
             screen_pos.y,
-            world_to_screen(player_width, screen_width, screen_height),
-            world_to_screen(player_height, screen_width, screen_height)
+            world_to_screen(player.width, screen_width, screen_height),
+            world_to_screen(player.height, screen_width, screen_height)
         },
         origin, 0.0f, WHITE
     );
 
     // Отрисовка хитбокса игрока
     Vector2 width_height_vector = (Vector2){
-        world_to_screen(player_width, screen_width, screen_height),
-        world_to_screen(player_height, screen_width, screen_height)
+        world_to_screen(player.width, screen_width, screen_height),
+        world_to_screen(player.height, screen_width, screen_height)
     };
-    Vector2 hitbox_topleft = world_to_screen(player_pos, screen_width, screen_height) - width_height_vector / 2.0;
+    Vector2 hitbox_topleft = world_to_screen(player.pos, screen_width, screen_height) - width_height_vector / 2.0;
     DrawRectangleLinesEx(
         (Rectangle){
             hitbox_topleft.x, hitbox_topleft.y,
@@ -313,7 +308,7 @@ void render_scene(
 	draw_frame(screen_width, screen_height);
 
     // Интерфейс (многострочный текст слева)
-    draw_ui(hit_count, GetFPS(), player_pos, level_time);
+    draw_ui(player, level_time);
 
     EndDrawing();
 }
@@ -341,12 +336,12 @@ void draw_menu(int selected_level)
     }
 }
 
-void reset_game_state(std::vector<Projectile>& projectiles, int& hit_count, float& level_time, Vector2& player_pos)
+void reset_game_state(std::vector<Projectile>& projectiles, float& level_time, Player& player)
 {
     projectiles.clear();
-    hit_count = 0;
+    player.hit_count = 0;
     level_time = 0.0f;
-    player_pos = { WORLD_SIZE / 2.0f, WORLD_SIZE / 2.0f };
+    player.pos = { WORLD_SIZE / 2.0f, WORLD_SIZE / 2.0f };
 }
 
 int main ()
@@ -362,10 +357,12 @@ int main ()
 	player.width = 60.0f;
 	player.height = player.width; // updated proportionally to sprite
 	update_player_height(player_texture, player.height, player.width);
+	player.health = 3; // init
+	player.immortal = false;
+	player.hit_count = 0;
 
 	// Система снарядов
 	std::vector<Projectile> projectiles;
-	player.hit_count = 0;
 	float level_time = 0.0f;
 
 	// Меню и состояния
@@ -388,7 +385,7 @@ int main ()
 			if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER) || IsKeyPressed(KEY_SPACE))
 			{
 				current_level = static_cast<LevelId>(selected_level);
-				reset_game_state(projectiles, player.hit_count, level_time, player.pos);
+				reset_game_state(projectiles, level_time, player);
 				state = GameState::PLAYING;
                 reset_level = true;
 			}
@@ -411,11 +408,10 @@ int main ()
 			float dt = GetFrameTime();
 			level_time += dt;
 		
-			move_player_wasd(player.pos, player.speed);
+			move_player_wasd(player);
             
-            // Обновление пуль и получение количества попаданий
-			int hits = update_projectiles(projectiles, player.pos, player.width, player.height);
-            player.hit(hits);
+            // Обновление пуль (hit_count обновляется внутри)
+			update_projectiles(projectiles, player);
             
             // Генерация новых пуль по уровню
 			update_level(projectiles, level_time, current_level, reset_level);
@@ -427,7 +423,7 @@ int main ()
 				// projectiles и hit_count сбросятся при следующем запуске уровня
 			}
 
-			render_scene(player_texture, player.hit_count, projectiles, player.pos, level_time, player.width, player.height);
+			render_scene(player_texture, projectiles, player, level_time);
 		}
 	}
 
