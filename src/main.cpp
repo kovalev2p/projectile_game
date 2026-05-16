@@ -9,11 +9,14 @@
 
 #define WORLD_SIZE 1024
 
+const float small_number = 1e-6;
+
 // Состояния игры
 enum class GameState {
     MENU,
     PLAYING,
-    GAME_OVER
+    GAME_OVER,
+    LEVEL_COMPLETED
 };
 
 // Идентификаторы уровней
@@ -204,7 +207,7 @@ void spawn_bullet_line(
     }
 }
 
-void level_beginning(std::vector<Projectile>& projectiles, const float level_time, const bool reset_level, Player& player)
+bool level_beginning(std::vector<Projectile>& projectiles, const float level_time, const bool reset_level, Player& player)
 {
     // Переменные уровня
     static float last_handle_time;
@@ -229,9 +232,15 @@ void level_beginning(std::vector<Projectile>& projectiles, const float level_tim
             Vector2{0, 0}, Vector2{WORLD_SIZE/2.0, 0}, 10*2+5, 10
         );
     }
+
+    if (level_time >= 3 && last_handle_time >= (3 - small_number) && projectiles.size() == 0 ) {
+        return true;
+    }
+
+    return false;
 }
 
-void level_test_hp(std::vector<Projectile>& projectiles, const float level_time, const bool reset_level, Player& player)
+bool level_test_hp(std::vector<Projectile>& projectiles, const float level_time, const bool reset_level, Player& player)
 {
     // Переменные уровня
     static float last_spawn_time;
@@ -252,9 +261,11 @@ void level_test_hp(std::vector<Projectile>& projectiles, const float level_time,
 		bullet.r = 10;
         projectiles.push_back(bullet);
     }
+
+    return false;
 }
 
-void level_test(std::vector<Projectile>& projectiles, const float level_time, const bool reset_level, Player& player)
+bool level_test(std::vector<Projectile>& projectiles, const float level_time, const bool reset_level, Player& player)
 // Логика тестового уровня
 {
     // Переменные уровня
@@ -266,7 +277,7 @@ void level_test(std::vector<Projectile>& projectiles, const float level_time, co
     }
 
     const float spawn_interval = 1.5f;
-	const float small_number = 1e-6f;
+	// const float small_number = 1e-6f;
 
     // каждые spawn_interval секунды создаём пули
     if (level_time - last_spawn_time >= spawn_interval) {
@@ -300,21 +311,25 @@ void level_test(std::vector<Projectile>& projectiles, const float level_time, co
 			projectiles.push_back(bullet_static);
 		}
     }
+
+    return false;
 }
 
-void update_level(std::vector<Projectile>& projectiles, const float level_time, LevelId level_id, const bool reset_level, Player& player)
+bool update_level(std::vector<Projectile>& projectiles, const float level_time, LevelId level_id, const bool reset_level, Player& player)
 // Диспетчеризация уровней
+// returns true if level completed
 {
     if (level_id == LevelId::TEST) {
-        level_test(projectiles, level_time, reset_level, player);
+        return level_test(projectiles, level_time, reset_level, player);
     }
     // LevelId::EMPTY — пустой уровень, снаярды не нужно создавать
     else if (level_id == LevelId::TEST_HP) {
-        level_test_hp(projectiles, level_time, reset_level, player);
+        return level_test_hp(projectiles, level_time, reset_level, player);
     }
     else if (level_id == LevelId::BEGINNING) {
-        level_beginning(projectiles, level_time, reset_level, player);
+        return level_beginning(projectiles, level_time, reset_level, player);
     }
+    return false;
 }
 
 void draw_ui(const Player& player, float level_time, const GameState game_state)
@@ -335,6 +350,7 @@ void draw_ui(const Player& player, float level_time, const GameState game_state)
     lines.push_back("HP: " + std::format("{}", player.health));
     if (player.immortal) lines.push_back("Immortal");
     if (game_state == GameState::GAME_OVER) lines.push_back("Game over!");
+    else if (game_state == GameState::LEVEL_COMPLETED) lines.push_back("Level completed!");
 
     // Отрисовка каждой строки
     for (size_t i = 0; i < lines.size(); ++i) {
@@ -496,21 +512,25 @@ int main ()
             
             // Генерация новых пуль по уровню
             // и установка параметров уровня (стартовое HP)
-			update_level(projectiles, level_time, current_level, reset_level, player);
+			bool completed = update_level(projectiles, level_time, current_level, reset_level, player);
             reset_level = false;
 
             // Обновление пуль (hit_count обновляется внутри)
 			update_projectiles(projectiles, player, state);
-
-			if (IsKeyPressed(KEY_ESCAPE))
-			{
+            
+            if (completed)
+            {
+                state = GameState::LEVEL_COMPLETED;
+            } 
+			else if (IsKeyPressed(KEY_ESCAPE))
+            {
 				state = GameState::MENU;
 				// projectiles и hit_count сбросятся при следующем запуске уровня
 			}
 
 			render_scene(player_texture, projectiles, player, level_time, state);
 		}
-        else if (state == GameState::GAME_OVER)
+        else if (state == GameState::GAME_OVER || state == GameState::LEVEL_COMPLETED)
         {
             if (IsKeyPressed(KEY_ESCAPE)) state = GameState::MENU;
             render_scene(player_texture, projectiles, player, level_time, state);
