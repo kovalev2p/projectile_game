@@ -20,13 +20,15 @@ enum class GameState {
 enum class LevelId {
     EMPTY = 0,
     TEST = 1,
-    TEST_HP = 2
+    TEST_HP = 2,
+    BEGINNING = 3,
 };
 
 const std::vector<std::string> level_names = {
     "Empty Level",
     "Test Level",
-    "Test HP"
+    "Test HP",
+    "Beginning"
 };
 
 struct Projectile // снаярд
@@ -186,6 +188,49 @@ void update_projectiles(std::vector<Projectile>& projectiles, Player& player, Ga
     if (dead) game_state = GameState::GAME_OVER;
 }
 
+void spawn_bullet_line(
+    std::vector<Projectile>& projectiles, const Vector2 velocity, const float time_offset,
+    const Vector2 line_start_pos, const Vector2 line_end_pos, const float step, const float bullet_radius
+){
+    float line_length_x = line_end_pos.x - line_start_pos.x;
+    float line_length_y = line_end_pos.y - line_start_pos.y;
+    float line_length = sqrt(line_length_x*line_length_x + line_length_y*line_length_y);
+    for (float position = 0; position <= line_length; position += step) {
+        Projectile bullet;
+        bullet.vel = velocity;
+        bullet.pos = line_start_pos + (position / line_length) * (line_end_pos - line_start_pos) + velocity * time_offset;
+        bullet.r = bullet_radius;
+        projectiles.push_back(bullet);
+    }
+}
+
+void level_beginning(std::vector<Projectile>& projectiles, const float level_time, const bool reset_level, Player& player)
+{
+    // Переменные уровня
+    static float last_handle_time;
+    if (reset_level) {
+        last_handle_time = -100.0f;
+        player.health = 3;
+        player.immortal = false;
+    }
+
+    if (level_time >= 0 && last_handle_time < 0) {
+        last_handle_time = 0;
+        spawn_bullet_line(
+            projectiles, Vector2{ 0.0f, 200.0f }, level_time - 0,
+            Vector2{WORLD_SIZE/2.0, 0}, Vector2{WORLD_SIZE, 0}, 10*2+5, 10
+        );
+    }
+
+    if (level_time >= 3 && last_handle_time < 3) {
+        last_handle_time = 3;
+        spawn_bullet_line(
+            projectiles, Vector2{ 0.0f, 200.0f }, level_time - 3,
+            Vector2{0, 0}, Vector2{WORLD_SIZE/2.0, 0}, 10*2+5, 10
+        );
+    }
+}
+
 void level_test_hp(std::vector<Projectile>& projectiles, const float level_time, const bool reset_level, Player& player)
 {
     // Переменные уровня
@@ -266,6 +311,9 @@ void update_level(std::vector<Projectile>& projectiles, const float level_time, 
     // LevelId::EMPTY — пустой уровень, снаярды не нужно создавать
     else if (level_id == LevelId::TEST_HP) {
         level_test_hp(projectiles, level_time, reset_level, player);
+    }
+    else if (level_id == LevelId::BEGINNING) {
+        level_beginning(projectiles, level_time, reset_level, player);
     }
 }
 
