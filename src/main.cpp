@@ -33,6 +33,24 @@ struct Projectile // снаярд
 	float r; // hitbox radius
 };
 
+class Player
+{
+    public:
+        Vector2 pos;
+        int health;
+        int hit_count;
+        bool immortal;
+        float speed; // пикселей в секунду
+        float width;
+        float height;
+
+        bool hit(int damage) {
+            if (damage>0) hit_count += damage;
+            if (!immortal) health -= damage;
+            return (!immortal) && (health <= 0);
+        }
+};
+
 Vector2 world_to_screen(Vector2 world_pos, int screen_w, int screen_h)
 // Преобразование игровых координат в экранные с сохранением пропорций
 {
@@ -52,8 +70,6 @@ float world_to_screen(float world_dimension, int screen_w, int screen_h)
 	float scale_x = (float)screen_w / WORLD_SIZE;
     float scale_y = (float)screen_h / WORLD_SIZE;
     float scale = (scale_x < scale_y) ? scale_x : scale_y;
-    float view_w = WORLD_SIZE * scale;
-    float view_h = WORLD_SIZE * scale;
 
 	return (float)(world_dimension * scale);
 }
@@ -340,16 +356,16 @@ int main ()
 	SearchAndSetResourceDir("resources");
 	Texture player_texture = LoadTexture("wabbit_alpha.png");
 	
-	// Позиция игрока в игровых координатах (центр мира)
-	Vector2 player_pos = { WORLD_SIZE / 2.0f, WORLD_SIZE / 2.0f };
-	float player_speed = 300.0f; // пикселей в секунду
-	float player_width = 60.0f;
-	float player_height = player_width; // updated proportionally to sprite
-	update_player_height(player_texture, player_height, player_width);
+    Player player;
+    player.pos = { WORLD_SIZE / 2.0f, WORLD_SIZE / 2.0f }; // Позиция игрока в игровых координатах (центр мира)
+	player.speed = 300.0f; // пикселей в секунду
+	player.width = 60.0f;
+	player.height = player.width; // updated proportionally to sprite
+	update_player_height(player_texture, player.height, player.width);
 
 	// Система снарядов
 	std::vector<Projectile> projectiles;
-	int hit_count = 0;
+	player.hit_count = 0;
 	float level_time = 0.0f;
 
 	// Меню и состояния
@@ -372,7 +388,7 @@ int main ()
 			if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER) || IsKeyPressed(KEY_SPACE))
 			{
 				current_level = static_cast<LevelId>(selected_level);
-				reset_game_state(projectiles, hit_count, level_time, player_pos);
+				reset_game_state(projectiles, player.hit_count, level_time, player.pos);
 				state = GameState::PLAYING;
                 reset_level = true;
 			}
@@ -395,11 +411,11 @@ int main ()
 			float dt = GetFrameTime();
 			level_time += dt;
 		
-			move_player_wasd(player_pos, player_speed);
+			move_player_wasd(player.pos, player.speed);
             
             // Обновление пуль и получение количества попаданий
-			int hits = update_projectiles(projectiles, player_pos, player_width, player_height);
-			hit_count += hits;
+			int hits = update_projectiles(projectiles, player.pos, player.width, player.height);
+            player.hit(hits);
             
             // Генерация новых пуль по уровню
 			update_level(projectiles, level_time, current_level, reset_level);
@@ -411,7 +427,7 @@ int main ()
 				// projectiles и hit_count сбросятся при следующем запуске уровня
 			}
 
-			render_scene(player_texture, hit_count, projectiles, player_pos, level_time, player_width, player_height);
+			render_scene(player_texture, player.hit_count, projectiles, player.pos, level_time, player.width, player.height);
 		}
 	}
 
