@@ -51,6 +51,7 @@ class Player
         float speed; // пикселей в секунду
         float width;
         float height;
+        float invincible_until; // кадры неуязвимости (по времени уровня)
 
         bool hit(int damage) {
             if (damage>0) hit_count += damage;
@@ -160,7 +161,7 @@ bool circle_rect_collision(Vector2 circle_center, float radius,
     return corner_dist_sq <= (radius * radius);
 }
 
-void update_projectiles(std::vector<Projectile>& projectiles, Player& player, GameState& game_state)
+void update_projectiles(std::vector<Projectile>& projectiles, Player& player, GameState& game_state, const float level_time)
 // Обновление пуль (физика): движение, удаление за границами, проверка столкновений с игроком
 {
     float dt = GetFrameTime();
@@ -186,8 +187,12 @@ void update_projectiles(std::vector<Projectile>& projectiles, Player& player, Ga
                    p.pos.y < 0 || p.pos.y > WORLD_SIZE;
         });
     projectiles.erase(iter, projectiles.end());
-
-    bool dead = player.hit(hit_count);
+    
+    bool dead = false;
+    if (hit_count > 0) {
+        dead = player.hit(1);
+        player.invincible_until = level_time + 1.0f;
+    }
     if (dead) game_state = GameState::GAME_OVER;
 }
 
@@ -442,6 +447,7 @@ void reset_game_state(std::vector<Projectile>& projectiles, float& level_time, P
     level_time = 0.0f;
     player.pos = { WORLD_SIZE / 2.0f, WORLD_SIZE / 2.0f };
     player.immortal = false;
+    player.invincible_until = 0;
 }
 
 int main ()
@@ -459,6 +465,7 @@ int main ()
 	update_player_height(player_texture, player.height, player.width);
 	player.health = 3; // init
 	player.immortal = false;
+    player.invincible_until = 0;
 	player.hit_count = 0;
 
 	// Система снарядов
@@ -516,7 +523,7 @@ int main ()
             reset_level = false;
 
             // Обновление пуль (hit_count обновляется внутри)
-			update_projectiles(projectiles, player, state);
+			update_projectiles(projectiles, player, state, level_time);
             
             if (completed)
             {
