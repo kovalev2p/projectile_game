@@ -362,7 +362,7 @@ int main ()
 				selected_level = (selected_level - 1 + level_names.size()) % level_names.size();
 			if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S) || IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D))
 				selected_level = (selected_level + 1) % level_names.size();
-			if (IsKeyPressed(KEY_ENTER))
+			if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER) || IsKeyPressed(KEY_SPACE))
 			{
 				current_level = static_cast<LevelId>(selected_level);
 				reset_game_state(projectiles, hit_count, level_time, player_pos);
