@@ -18,12 +18,14 @@ enum class GameState {
 // Идентификаторы уровней
 enum class LevelId {
     EMPTY = 0,
-    TEST = 1
+    TEST = 1,
+    TEST_HP = 2
 };
 
 const std::vector<std::string> level_names = {
     "Empty Level",
-    "Test Level"
+    "Test Level",
+    "Test HP"
 };
 
 struct Projectile // снаярд
@@ -182,6 +184,29 @@ void update_projectiles(std::vector<Projectile>& projectiles, Player& player)
     player.hit(hit_count);
 }
 
+void level_test_hp(std::vector<Projectile>& projectiles, const float level_time, const bool reset_level, Player& player)
+{
+    // Переменные уровня
+    static float last_spawn_time;
+    if (reset_level) {
+        last_spawn_time = -100.0f;
+        player.health = 3;
+        player.immortal = false;
+    }
+
+    const float spawn_interval = 1.0f;
+
+    if (level_time - last_spawn_time >= spawn_interval) {
+        last_spawn_time = level_time;
+
+        Projectile bullet;
+        bullet.pos = { 700.0f, 700.0f };
+        bullet.vel = { 0.0f, -200.0f };
+		bullet.r = 10;
+        projectiles.push_back(bullet);
+    }
+}
+
 void level_test(std::vector<Projectile>& projectiles, const float level_time, const bool reset_level, Player& player)
 // Логика тестового уровня
 {
@@ -190,6 +215,7 @@ void level_test(std::vector<Projectile>& projectiles, const float level_time, co
     if (reset_level) {
         last_spawn_time = -100.0f;
         player.health = 3;
+        player.immortal = true;
     }
 
     const float spawn_interval = 1.5f;
@@ -236,6 +262,9 @@ void update_level(std::vector<Projectile>& projectiles, const float level_time, 
         level_test(projectiles, level_time, reset_level, player);
     }
     // LevelId::EMPTY — пустой уровень, снаярды не нужно создавать
+    else if (level_id == LevelId::TEST_HP) {
+        level_test_hp(projectiles, level_time, reset_level, player);
+    }
 }
 
 void draw_ui(const Player& player, float level_time)
@@ -254,6 +283,7 @@ void draw_ui(const Player& player, float level_time)
     lines.push_back("Player pos: (" + std::format("{:.1f}", player.pos.x) + ", " + std::format("{:.1f}", player.pos.y) + ")");
     lines.push_back("Level time: " + std::format("{:.3f}", level_time) + " s");
     lines.push_back("HP: " + std::format("{}", player.health));
+    if (player.immortal) lines.push_back("Immortal");
 
     // Отрисовка каждой строки
     for (size_t i = 0; i < lines.size(); ++i) {
@@ -344,6 +374,7 @@ void reset_game_state(std::vector<Projectile>& projectiles, float& level_time, P
     player.hit_count = 0;
     level_time = 0.0f;
     player.pos = { WORLD_SIZE / 2.0f, WORLD_SIZE / 2.0f };
+    player.immortal = false;
 }
 
 int main ()
