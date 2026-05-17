@@ -6,6 +6,7 @@
 #include <cmath>
 #include <string>
 #include <format>
+#include <functional>
 
 #define WORLD_SIZE 1024
 
@@ -59,6 +60,16 @@ class Player
             return (!immortal) && (health <= 0);
         }
 };
+
+using AttackAction = std::function<void(float dt, std::vector<Projectile>&, Player&)>;
+// dt (time_offset) — разница между текущим временем и запланированным (чтобы выровнять расположение)
+
+struct AttackEvent {
+    float time;
+    AttackAction action;
+};
+
+// ------------------------------------------------------------
 
 Vector2 world_to_screen(Vector2 world_pos, int screen_w, int screen_h)
 // Преобразование игровых координат в экранные с сохранением пропорций
@@ -212,37 +223,20 @@ void spawn_bullet_line(
     }
 }
 
-bool level_beginning(std::vector<Projectile>& projectiles, const float level_time, const bool reset_level, Player& player)
+void level_beginning_init(std::vector<AttackEvent>& events, Player& player)
 {
-    // Переменные уровня
-    static float last_handle_time;
-    if (reset_level) {
-        last_handle_time = -100.0f;
-        player.health = 3;
-        player.immortal = false;
-    }
+    player.health = 3;
+    player.immortal = false;
 
-    if (level_time >= 0 && last_handle_time < 0) {
-        last_handle_time = 0;
-        spawn_bullet_line(
-            projectiles, Vector2{ 0.0f, 200.0f }, level_time - 0,
-            Vector2{WORLD_SIZE/2.0, 0}, Vector2{WORLD_SIZE, 0}, 10*2+5, 10
-        );
-    }
+    // линия слева
+    events.push_back({0.0f, [](float dt, std::vector<Projectile>& p, Player& pl) {
+        spawn_bullet_line(p, {0, 200}, dt, {WORLD_SIZE/2.0f, 0}, {WORLD_SIZE, 0}, 10*2+5, 10);
+    }});
 
-    if (level_time >= 3 && last_handle_time < 3) {
-        last_handle_time = 3;
-        spawn_bullet_line(
-            projectiles, Vector2{ 0.0f, 200.0f }, level_time - 3,
-            Vector2{0, 0}, Vector2{WORLD_SIZE/2.0, 0}, 10*2+5, 10
-        );
-    }
-
-    if (level_time >= 3 && last_handle_time >= (3 - small_number) && projectiles.size() == 0 ) {
-        return true;
-    }
-
-    return false;
+    // линия справа
+    events.push_back({3.0f, [](float dt, std::vector<Projectile>& p, Player& pl) {
+        spawn_bullet_line(p, {0, 200}, dt, {0, 0}, {WORLD_SIZE/2.0f, 0}, 10*2+5, 10);
+    }});
 }
 
 bool level_test_hp(std::vector<Projectile>& projectiles, const float level_time, const bool reset_level, Player& player)
@@ -320,21 +314,58 @@ bool level_test(std::vector<Projectile>& projectiles, const float level_time, co
     return false;
 }
 
-bool update_level(std::vector<Projectile>& projectiles, const float level_time, LevelId level_id, const bool reset_level, Player& player)
 // Диспетчеризация уровней
 // returns true if level completed
+bool update_level(
+    std::vector<Projectile>& projectiles, const float level_time,
+    LevelId level_id, const bool reset_level, Player& player
+)
 {
-    if (level_id == LevelId::TEST) {
-        return level_test(projectiles, level_time, reset_level, player);
+    // Статические данные для event-based уровней
+    static std::vector<AttackEvent> events;
+    static size_t next_event = 0;
+    static bool event_level_completed = false;
+
+    bool is_event_level = (level_id == LevelId::BEGINNING);
+
+    if (is_event_level)
+    {
+        if (reset_level) {
+            // Очистка событий, инициализация уровня
+            events.clear();
+            next_event = 0;
+            event_level_completed = false;
+            // Вызываем инициализацию конкретного уровня
+            if (level_id == LevelId::BEGINNING) {
+                level_beginning_init(events, player);
+            }
+        }
+
+        // Выполняем все события, время которых наступило
+        while (next_event < events.size() && level_time >= events[next_event].time) {
+            float dt = level_time - events[next_event].time; // разница между текущим временем и запланированным (чтобы выровнять расположение)
+            events[next_event].action(dt, projectiles, player);
+            next_event++;
+        }
+
+        // Проверка завершения уровня
+        if (!event_level_completed && next_event == events.size() && projectiles.empty()) {
+            event_level_completed = true;
+            return true;
+        }
+        return false;
     }
-    // LevelId::EMPTY — пустой уровень, снаярды не нужно создавать
-    else if (level_id == LevelId::TEST_HP) {
-        return level_test_hp(projectiles, level_time, reset_level, player);
+    else
+    {
+        if (level_id == LevelId::TEST) {
+            return level_test(projectiles, level_time, reset_level, player);
+        }
+        // LevelId::EMPTY — пустой уровень, снаярды не нужно создавать
+        else if (level_id == LevelId::TEST_HP) {
+            return level_test_hp(projectiles, level_time, reset_level, player);
+        }
+        return false;
     }
-    else if (level_id == LevelId::BEGINNING) {
-        return level_beginning(projectiles, level_time, reset_level, player);
-    }
-    return false;
 }
 
 void draw_ui(const Player& player, float level_time, const GameState game_state)
