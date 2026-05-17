@@ -223,6 +223,23 @@ void spawn_bullet_line(
     }
 }
 
+// Создаёт луч (вереницу пуль) из одной точки
+// interval — интервал между пулями (в секундах)
+void add_beam_events(std::vector<AttackEvent>& events, float start_time, float interval, int count,
+                     Vector2 start_pos, Vector2 velocity, float radius)
+{
+    for (int i = 0; i < count; ++i) {
+        float event_time = start_time + i * interval;
+        events.push_back({event_time, [=](float dt, std::vector<Projectile>& p, Player&) {
+            Projectile bullet;
+            bullet.pos = start_pos + velocity * dt;
+            bullet.vel = velocity;
+            bullet.r = radius;
+            p.push_back(bullet);
+        }});
+    }
+}
+
 void level_beginning_init(std::vector<AttackEvent>& events, Player& player)
 {
     player.health = 3;
@@ -237,6 +254,21 @@ void level_beginning_init(std::vector<AttackEvent>& events, Player& player)
     events.push_back({3.0f, [](float dt, std::vector<Projectile>& p, Player& pl) {
         spawn_bullet_line(p, {0, 200}, dt, {0, 0}, {WORLD_SIZE/2.0f, 0}, 10*2+5, 10);
     }});
+
+    // Атака 3: луч из центра сверху
+    {
+        float beam_start = 5.0f;
+        float beam_interval = 0.12f;
+        int beam_count = 20;
+        Vector2 beam_pos = { WORLD_SIZE / 2.0f, 0 };
+        Vector2 beam_vel = { 0, 200 };
+        float beam_radius = 10;
+
+        add_beam_events(
+            events, beam_start, beam_interval, beam_count,
+            beam_pos, beam_vel, beam_radius
+        );
+    }
 }
 
 bool level_test_hp(std::vector<Projectile>& projectiles, const float level_time, const bool reset_level, Player& player)
