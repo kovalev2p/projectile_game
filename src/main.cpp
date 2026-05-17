@@ -299,6 +299,8 @@ void level_beginning_init(std::vector<AttackEvent>& events, Player& player)
         spawn_bullet_line(p, {0, 180}, dt, {0, 0}, {WORLD_SIZE/2.0f, 0}, 10*2+5, 10);
     }});
 
+    // TODO: увеличить время между атаками (не только этими)
+
     // Атака 2: широкая линия с щелями
     events.push_back({2.5f, [](float dt, std::vector<Projectile>& p, Player&) {
         spawn_bullet_line(p, {0, 180}, dt, {0, 0}, {WORLD_SIZE, 0}, 150, 10);
@@ -340,6 +342,7 @@ void level_beginning_init(std::vector<AttackEvent>& events, Player& player)
     }
 
     // Атака 4: три луча сверху (после взрыва)
+    // TODO: заменить на веер
     {
         float start_beam_trio = 9.5f;
         float beam_interval = 0.2f;
@@ -380,6 +383,7 @@ void level_beginning_init(std::vector<AttackEvent>& events, Player& player)
     }});
 
     // Атака 7: веер из пяти лучей
+    // TODO: увеличить веер
     {
         float start_fan = 14.0f;
         float interval = 0.1f;
@@ -398,6 +402,7 @@ void level_beginning_init(std::vector<AttackEvent>& events, Player& player)
     }
 
     // Атака 8: вторая бомба с взрывом лучами
+    // TODO: уменьшить длительность (кол-во пуль)
     {
         float bomb_drop_time = 15.5f;
         float bomb_vel_y = 150.0f;
@@ -433,6 +438,7 @@ void level_beginning_init(std::vector<AttackEvent>& events, Player& player)
                         8, 0.2f, 30, 180.0f, 10);
 
             // поскольку создаются новые события, нужно снова отсортировать
+            // TODO: вынести сортировку в функцию
             std::sort(events.begin(), events.end(), [](AttackEvent event1, AttackEvent event2){
                 return event1.time < event2.time;
             });
