@@ -8,7 +8,7 @@
 #include <format>
 #include <functional>
 
-#define WORLD_SIZE 1024
+#define WORLD_SIZE 1024.0f
 
 const float small_number = 1e-6;
 
@@ -240,35 +240,209 @@ void add_beam_events(std::vector<AttackEvent>& events, float start_time, float i
     }
 }
 
+// Создаёт круговой взрыв (N пуль из центра)
+void spawn_circular_burst(std::vector<Projectile>& projectiles, Vector2 center, float speed, float radius, int count)
+{
+    float angle_step = 2 * PI / count;
+    for (int i = 0; i < count; ++i) {
+        float angle = (-PI/2) + i * angle_step;
+        Vector2 vel = { speed * cosf(angle), speed * sinf(angle) };
+        Projectile p;
+        p.pos = center;
+        p.vel = vel;
+        p.r = radius;
+        projectiles.push_back(p);
+    }
+}
+
+// Взрыв лучами: из центра вылетает N лучей (каждый луч – вереница пуль)
+void add_beam_burst(
+    std::vector<AttackEvent>& events, float start_time, Vector2 center, 
+    int beam_count, float beam_interval, int bullets_per_beam,
+    float beam_speed, float beam_radius
+)
+{
+    float angle_step = 2 * PI / beam_count;
+    for (int i = 0; i < beam_count; ++i) {
+        float angle = (-PI/2) + i * angle_step;
+        Vector2 velocity = { beam_speed * cosf(angle), beam_speed * sinf(angle) };
+        // Каждый луч – это серия событий
+        add_beam_events(
+            events, start_time, beam_interval, bullets_per_beam,
+            center, velocity, beam_radius
+        );
+    }
+}
+
+void spawn_targeted_bullet(std::vector<Projectile>& projectiles, Vector2 start, Vector2 target, float speed, float radius)
+{
+    Vector2 dir = Vector2Subtract(target, start);
+    dir = Vector2Normalize(dir);
+    Vector2 vel = { dir.x * speed, dir.y * speed };
+    Projectile p;
+    p.pos = start;
+    p.vel = vel;
+    p.r = radius;
+    projectiles.push_back(p);
+}
+
 void level_beginning_init(std::vector<AttackEvent>& events, Player& player)
 {
     player.health = 3;
     player.immortal = false;
 
-    // линия слева
-    events.push_back({0.0f, [](float dt, std::vector<Projectile>& p, Player& pl) {
-        spawn_bullet_line(p, {0, 200}, dt, {WORLD_SIZE/2.0f, 0}, {WORLD_SIZE, 0}, 10*2+5, 10);
+    // Атака 1: две плотные линии
+    events.push_back({0.0f, [](float dt, std::vector<Projectile>& p, Player&) {
+        spawn_bullet_line(p, {0, 180}, dt, {WORLD_SIZE/2.0f, 0}, {WORLD_SIZE, 0}, 10*2+5, 10);
+    }});
+    events.push_back({2.0f, [](float dt, std::vector<Projectile>& p, Player&) {
+        spawn_bullet_line(p, {0, 180}, dt, {0, 0}, {WORLD_SIZE/2.0f, 0}, 10*2+5, 10);
     }});
 
-    // линия справа
-    events.push_back({3.0f, [](float dt, std::vector<Projectile>& p, Player& pl) {
-        spawn_bullet_line(p, {0, 200}, dt, {0, 0}, {WORLD_SIZE/2.0f, 0}, 10*2+5, 10);
+    // Атака 2: широкая линия с щелями
+    events.push_back({2.5f, [](float dt, std::vector<Projectile>& p, Player&) {
+        spawn_bullet_line(p, {0, 180}, dt, {0, 0}, {WORLD_SIZE, 0}, 150, 10);
     }});
 
-    // Атака 3: луч из центра сверху
+    // Атака 3: большая бомба с взрывом в центре
     {
-        float beam_start = 5.0f;
-        float beam_interval = 0.12f;
-        int beam_count = 20;
-        Vector2 beam_pos = { WORLD_SIZE / 2.0f, 0 };
-        Vector2 beam_vel = { 0, 200 };
-        float beam_radius = 10;
+        float bomb_drop_time = 5.0f;
+        float bomb_vel_y = 150.0f;
+        float bomb_radius = 20.0f;
+        Vector2 bomb_start = { WORLD_SIZE/2.0f, 0 };
+        float distance_to_center = WORLD_SIZE/2.0f; // 512
+        float travel_time = distance_to_center / bomb_vel_y; // ≈ 3.413
+        float explosion_time = bomb_drop_time + travel_time;
 
-        add_beam_events(
-            events, beam_start, beam_interval, beam_count,
-            beam_pos, beam_vel, beam_radius
-        );
+        // Создаём бомбу
+        events.push_back({bomb_drop_time, [=](float dt, std::vector<Projectile>& p, Player&) {
+            Projectile bomb;
+            bomb.pos = bomb_start;
+            bomb.vel = { 0, bomb_vel_y };
+            bomb.r = bomb_radius;
+            p.push_back(bomb);
+        }});
+
+        // Запланируем взрыв: ищем бомбу в центре и заменяем её круговой волной
+        events.push_back({explosion_time, [=](float dt, std::vector<Projectile>& p, Player&) {
+            // Ищем бомбу с большим радиусом
+            for (auto it = p.begin(); it != p.end(); ++it) {
+                if (it->r == bomb_radius) {
+                    // проверка на центр (не обязательно):
+                    // && std::abs(it->pos.x - WORLD_SIZE/2.0f) < 10.0f && std::abs(it->pos.y - WORLD_SIZE/2.0f) < 10.0f
+                    p.erase(it);
+                    break;
+                }
+            }
+            // Круговая волна из 12 пуль
+            spawn_circular_burst(p, { WORLD_SIZE/2.0f, WORLD_SIZE/2.0f }, 180.0f, 10, 12);
+        }});
     }
+
+    // Атака 4: три луча сверху (после взрыва)
+    {
+        float start_beam_trio = 9.5f;
+        float beam_interval = 0.2f;
+        int bullets_per_beam = 20;
+        Vector2 vel_down = { 0, 200 };
+        float radius = 10;
+
+        // Луч из x=300
+        add_beam_events(events, start_beam_trio, beam_interval, bullets_per_beam,
+                        {300, 0}, vel_down, radius);
+        // Луч из x=512
+        add_beam_events(events, start_beam_trio, beam_interval, bullets_per_beam,
+                        {512, 0}, vel_down, radius);
+        // Луч из x=724
+        add_beam_events(events, start_beam_trio, beam_interval, bullets_per_beam,
+                        {724, 0}, vel_down, radius);
+    }
+
+    // Атака 5: горизонтальные встречные лучи
+    {
+        float start_horizontal = 11.0f;
+        float interval = 0.12f;
+        int count = 8;
+        float radius = 6;
+        // Луч слева направо (верхняя треть)
+        add_beam_events(events, start_horizontal, interval, count,
+                        {0, WORLD_SIZE/3}, {200, 0}, radius);
+        // Луч справа налево (нижняя треть)
+        add_beam_events(events, start_horizontal, interval, count,
+                        {WORLD_SIZE, WORLD_SIZE*2/3}, {-200, 0}, radius);
+    }
+
+    // Атака 6: большая прицельная пуля
+    events.push_back({12.5f, [](float dt, std::vector<Projectile>& p, Player& pl) {
+        // Случайная X от 100 до 924
+        float x = 100 + static_cast<float>(rand()) / RAND_MAX * (WORLD_SIZE - 200);
+        spawn_targeted_bullet(p, {x, 0}, pl.pos, 150.0f, 12.0f);
+    }});
+
+    // Атака 7: веер из пяти лучей
+    {
+        float start_fan = 14.0f;
+        float interval = 0.1f;
+        int bullets_per_beam = 5;
+        float speed = 200;
+        float radius = 5;
+        Vector2 center_top = { WORLD_SIZE/2.0f, 0 };
+        // Углы: -40, -20, 0, +20, +40 градусов
+        float angles[] = {-40, -20, 0, 20, 40};
+        for (float angle_deg : angles) {
+            float rad = angle_deg * PI / 180.0f;
+            Vector2 vel = { speed * sinf(rad), speed * cosf(rad) }; // cos для вертикали
+            add_beam_events(events, start_fan, interval, bullets_per_beam,
+                            center_top, vel, radius);
+        }
+    }
+
+    // Атака 8: вторая бомба с взрывом лучами
+    {
+        float bomb_drop_time = 15.5f;
+        float bomb_vel_y = 150.0f;
+        float bomb_radius = 15.0f;
+        Vector2 bomb_start = { WORLD_SIZE/2.0f, 0 };
+        float travel_time = (WORLD_SIZE/2.0f) / bomb_vel_y;
+        float explosion_time = bomb_drop_time + travel_time;
+
+        // Создаём бомбу
+        events.push_back({bomb_drop_time, [=](float dt, std::vector<Projectile>& p, Player&) {
+            Projectile bomb;
+            bomb.pos = bomb_start;
+            bomb.vel = { 0, bomb_vel_y };
+            bomb.r = bomb_radius;
+            p.push_back(bomb);
+        }});
+
+        // Взрыв: удаляем бомбу и добавляем burst лучей
+        events.push_back({explosion_time, [&events, bomb_radius, explosion_time](float dt, std::vector<Projectile>& p, Player&) {
+            // Удаляем бомбу
+            for (auto it = p.begin(); it != p.end(); ++it) {
+                if (it->r == bomb_radius &&
+                    std::abs(it->pos.x - WORLD_SIZE/2.0f) < 10.0f &&
+                    std::abs(it->pos.y - WORLD_SIZE/2.0f) < 10.0f
+                )
+                {
+                    p.erase(it);
+                    break;
+                }
+            }
+            // Взрыв лучами 
+            add_beam_burst(events, explosion_time, { WORLD_SIZE/2.0f, WORLD_SIZE/2.0f },
+                        8, 0.2f, 30, 180.0f, 10);
+
+            // поскольку создаются новые события, нужно снова отсортировать
+            std::sort(events.begin(), events.end(), [](AttackEvent event1, AttackEvent event2){
+                return event1.time < event2.time;
+            });
+        }});
+    }
+
+    std::sort(events.begin(), events.end(), [](AttackEvent event1, AttackEvent event2){
+        return event1.time < event2.time;
+    });
+    return;
 }
 
 bool level_test_hp(std::vector<Projectile>& projectiles, const float level_time, const bool reset_level, Player& player)
