@@ -116,7 +116,7 @@ void create_main_window()
 	const int min_window_height = 480;
 
 	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI | FLAG_WINDOW_RESIZABLE);
-	InitWindow(default_window_width, default_window_height, "Hello Raylib"); // Create the window and OpenGL context
+	InitWindow(default_window_width, default_window_height, "Projectile game"); // Create the window and OpenGL context
 	SetWindowMinSize(min_window_width, min_window_height);
 }
 
