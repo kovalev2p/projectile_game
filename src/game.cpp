@@ -5,7 +5,8 @@ const std::vector<std::string> level_names = {
     "Empty Level",
     "Test Level",
     "Test HP",
-    "Beginning"
+    "Beginning",
+    "Way",
 };
 
 bool Player::hit(int damage) {
@@ -198,6 +199,178 @@ void sort_attack_events(std::vector<AttackEvent>& events) {
     std::sort(events.begin(), events.end(), [](AttackEvent event1, AttackEvent event2){
         return event1.time < event2.time;
     });
+}
+
+void level_way_init(std::vector<AttackEvent>& events, Player& player)
+{
+    player.health = 3;
+    player.immortal = false;
+
+    // 1. Два расходящихся луча из центра верха
+    {
+        float start_time = 0.0f;
+        float interval = 0.12f;
+        int count = 12;
+        float radius = 10.0f;
+
+        add_beam_events(events, start_time, interval, count,
+                        { WORLD_SIZE / 2.0f, 0 }, { -120.0f, 150.0f }, radius);
+        add_beam_events(events, start_time, interval, count,
+                        { WORLD_SIZE / 2.0f, 0 }, { 120.0f, 150.0f }, radius);
+    }
+
+    // 2. Широкая линия сверху
+    events.push_back({3.0f, [](float dt, std::vector<Projectile>& p, Player&) {
+        spawn_bullet_line(p, {0, 250}, dt, {0, 0}, {WORLD_SIZE, 0}, 110, 10);
+    }});
+
+    // 3. Две бомбы, падающие одновременно
+    {
+        float bomb_drop_time = 6.0f;
+        float bomb_vel_y = 140.0f;
+        float bomb_radius = 20.0f;
+        Vector2 bomb1_start = { WORLD_SIZE / 3.0f, 0 };
+        Vector2 bomb2_start = { 2.0f * WORLD_SIZE / 3.0f, 0 };
+        float travel_time = (WORLD_SIZE / 2.0f) / bomb_vel_y;
+        float explosion_time = bomb_drop_time + travel_time;
+
+        events.push_back({bomb_drop_time, [=](float, std::vector<Projectile>& p, Player&) {
+            Projectile bomb1, bomb2;
+            bomb1.pos = bomb1_start;
+            bomb1.vel = { 0, bomb_vel_y };
+            bomb1.r = bomb_radius;
+            bomb2.pos = bomb2_start;
+            bomb2.vel = { 0, bomb_vel_y };
+            bomb2.r = bomb_radius;
+            p.push_back(bomb1);
+            p.push_back(bomb2);
+        }});
+
+        events.push_back({explosion_time, [=, &events](float, std::vector<Projectile>& p, Player&) {
+            // Удаляем бомбы
+            for (auto it = p.begin(); it != p.end(); ) {
+                if (it->r == bomb_radius && (std::abs(it->pos.x - bomb1_start.x) < 10.0f ||
+                                             std::abs(it->pos.x - bomb2_start.x) < 10.0f)) {
+                    it = p.erase(it);
+                } else {
+                    ++it;
+                }
+            }
+            // Первая бомба – круговая волна
+            spawn_circular_burst(p, { bomb1_start.x, WORLD_SIZE / 2.0f }, 160.0f, 10, 8);
+            // Вторая бомба – взрыв лучами
+            add_beam_burst(events, explosion_time, { bomb2_start.x, WORLD_SIZE / 2.0f },
+                           6, 0.15f, 10, 180.0f, 10);
+            // Сортировка событий после добавления новых
+            sort_attack_events(events);
+        }});
+    }
+
+    // 4. Веер из пяти лучей + горизонтальный луч
+    {
+        float start_time = 12.0f;
+        float interval = 0.12f;
+        int count = 12;
+        float speed = 200.0f;
+        float radius = 10.0f;
+        Vector2 center_top = { WORLD_SIZE / 2.0f, 0 };
+        std::vector<float> angles = { -45.0f, -22.5f, 0.0f, 22.5f, 45.0f };
+
+        // веер
+        add_fan_attack(events, start_time, center_top, angles,
+                       interval, count, speed, radius);
+
+        // Горизонтальный луч из левой границы
+        add_beam_events(events, start_time, interval, count,
+                        { 0, 700.0f }, { 200.0f, 0 }, radius);
+    }
+
+    // 5. Прицельная пуля + встречная линия снизу
+    {
+        float start_time = 17.5f;
+
+        events.push_back({start_time, [](float, std::vector<Projectile>& p, Player& pl) {
+            float x = 100 + static_cast<float>(rand()) / RAND_MAX * (WORLD_SIZE - 200);
+            spawn_targeted_bullet(p, { x, 0 }, pl.pos, 180.0f, 20);
+        }});
+
+        events.push_back({start_time, [](float dt, std::vector<Projectile>& p, Player&) {
+            spawn_bullet_line(p, {0, -200}, dt, {0, WORLD_SIZE}, {WORLD_SIZE, WORLD_SIZE}, 120, 10);
+        }});
+    }
+
+    // 6. Два встречных веера (по 3 луча каждый)
+    {
+        float start_time = 20.0f;
+        float interval = 0.15f;
+        int count = 8;
+        float speed = 180.0f;
+        float radius = 10.0f;
+
+        // Веер из левой границы: углы -30°, 0°, +30° относительно направления вправо (90°)
+        Vector2 left_center = { 0, WORLD_SIZE / 2.0f };
+        std::vector<float> left_angles = { 60.0f, 90.0f, 120.0f };
+        add_fan_attack(events, start_time, left_center, left_angles,
+                       interval, count, speed, radius);
+
+        // Веер из правой границы: углы 240°, 270°, 300° (налево)
+        Vector2 right_center = { WORLD_SIZE, WORLD_SIZE / 2.0f };
+        std::vector<float> right_angles = { 240.0f, 270.0f, 300.0f };
+        add_fan_attack(events, start_time, right_center, right_angles,
+                       interval, count, speed, radius);
+    }
+
+    // 7. Каскадная бомба с диагональными пулями
+    {
+        float bomb_drop_time = 23.0f;
+        float bomb_vel_y = 120.0f;
+        float bomb_radius = 20.0f;
+        Vector2 bomb_start = { WORLD_SIZE / 2.0f, 0 };
+        float travel_time = (WORLD_SIZE / 2.0f) / bomb_vel_y;
+        float explosion_time = bomb_drop_time + travel_time;
+
+        events.push_back({bomb_drop_time, [=](float, std::vector<Projectile>& p, Player&) {
+            Projectile bomb;
+            bomb.pos = bomb_start;
+            bomb.vel = { 0, bomb_vel_y };
+            bomb.r = bomb_radius;
+            p.push_back(bomb);
+        }});
+
+        // Первый взрыв
+        events.push_back({explosion_time, [=, &events](float, std::vector<Projectile>& p, Player&) {
+            // Удаляем бомбу
+            for (auto it = p.begin(); it != p.end(); ++it) {
+                if (it->r == bomb_radius && std::abs(it->pos.x - WORLD_SIZE/2.0f) < 10.0f &&
+                    std::abs(it->pos.y - WORLD_SIZE/2.0f) < 10.0f) {
+                    p.erase(it);
+                    break;
+                }
+            }
+            // Первая круговая волна
+            spawn_circular_burst(p, { WORLD_SIZE/2.0f, WORLD_SIZE/2.0f }, 140.0f, 10, 8);
+
+            // Диагональные пули
+            const float diagonal_speed = 600.0f;
+            spawn_targeted_bullet(p, {0, 0}, {WORLD_SIZE, WORLD_SIZE}, diagonal_speed, 15);
+            spawn_targeted_bullet(p, {WORLD_SIZE, 0}, {0, WORLD_SIZE}, diagonal_speed, 15);
+
+            // Второй взрыв через время пересечения в центре
+            const float half_world = WORLD_SIZE / 2.0f;
+            const float diagonal_half_distance = sqrt(half_world * half_world + half_world * half_world);
+            const float crossing_time = diagonal_half_distance / diagonal_speed;
+            float second_explosion_time = explosion_time + crossing_time;
+
+            events.push_back({second_explosion_time, [](float, std::vector<Projectile>& pr, Player&) {
+                spawn_circular_burst(pr, { WORLD_SIZE/2.0f, WORLD_SIZE/2.0f }, 200.0f, 10, 16);
+            }});
+            
+            // Сортировка событий после добавления новых
+            sort_attack_events(events);
+        }});
+    }
+
+    sort_attack_events(events);
 }
 
 void level_beginning_init(std::vector<AttackEvent>& events, Player& player)
@@ -432,7 +605,7 @@ bool update_level(
     static size_t next_event = 0;
     static bool event_level_completed = false;
 
-    bool is_event_level = (level_id == LevelId::BEGINNING);
+    bool is_event_level = (level_id == LevelId::BEGINNING || level_id == LevelId::WAY);
 
     if (is_event_level)
     {
@@ -441,9 +614,12 @@ bool update_level(
             events.clear();
             next_event = 0;
             event_level_completed = false;
-            // Вызываем инициализацию конкретного уровня
+            // Вызываем инициализацию выбранного уровня
             if (level_id == LevelId::BEGINNING) {
                 level_beginning_init(events, player);
+            }
+            else if (level_id == LevelId::WAY) {
+                level_way_init(events, player);
             }
         }
 

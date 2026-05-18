@@ -27,6 +27,7 @@ enum class LevelId {
     TEST = 1,
     TEST_HP = 2,
     BEGINNING = 3,
+    WAY = 4,
 };
 
 extern const std::vector<std::string> level_names;
@@ -79,10 +80,13 @@ void spawn_targeted_bullet(std::vector<Projectile>& projectiles, Vector2 start, 
 void add_fan_attack(std::vector<AttackEvent>& events, float start_time, Vector2 origin_pos, std::vector<float> angles,
     float interval, int bullets_per_beam, float speed, float bullet_radius);
 void sort_attack_events(std::vector<AttackEvent>& events);
+
+void level_way_init(std::vector<AttackEvent>& events, Player& player);
 void level_beginning_init(std::vector<AttackEvent>& events, Player& player);
 bool level_test_hp(std::vector<Projectile>& projectiles, const float level_time, const bool reset_level, Player& player);
 bool level_test(std::vector<Projectile>& projectiles, const float level_time, const bool reset_level, Player& player);
 bool update_level(std::vector<Projectile>& projectiles, const float level_time,
     LevelId level_id, const bool reset_level, Player& player);
+
 void reset_game_state(std::vector<Projectile>& projectiles, float& level_time, Player& player);
 void update_player_height(Texture& player_texture, float& player_height, const float& player_width);
