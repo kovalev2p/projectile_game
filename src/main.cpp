@@ -100,12 +100,12 @@ int main ()
 				// projectiles и hit_count сбросятся при следующем запуске уровня
 			}
 
-			render_scene(player_texture, projectiles, player, level_time, state);
+			render_scene(player_texture, projectiles, player, level_time, state, current_level);
 		}
         else if (state == GameState::GAME_OVER || state == GameState::LEVEL_COMPLETED)
         {
             if (IsKeyPressed(KEY_ESCAPE)) state = GameState::MENU;
-            render_scene(player_texture, projectiles, player, level_time, state);
+            render_scene(player_texture, projectiles, player, level_time, state, current_level);
         }
 	}
 

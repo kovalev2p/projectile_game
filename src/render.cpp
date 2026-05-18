@@ -49,7 +49,7 @@ void create_main_window()
 	SetWindowMinSize(min_window_width, min_window_height);
 }
 
-void draw_ui(const Player& player, float level_time, const GameState game_state)
+void draw_ui(const Player& player, float level_time, const GameState game_state, const LevelId& current_level)
 {
     int start_x = 10;
     int start_y = 10;
@@ -59,6 +59,7 @@ void draw_ui(const Player& player, float level_time, const GameState game_state)
     // Формируем строки для отображения
     std::vector<std::string> lines;
     // lines.push_back("Projectile game");
+    lines.push_back("Level: " + level_names[(int)current_level]);
     if (debug_mode || player.immortal) lines.push_back("Collisions: " + std::to_string(player.hit_count));
     if (debug_mode) {
         lines.push_back("FPS: " + std::to_string(GetFPS()));
@@ -77,7 +78,7 @@ void draw_ui(const Player& player, float level_time, const GameState game_state)
     }
 }
 
-void render_scene(Texture& player_texture, const std::vector<Projectile>& projectiles, const Player& player, float level_time, const GameState game_state)
+void render_scene(Texture& player_texture, const std::vector<Projectile>& projectiles, const Player& player, float level_time, const GameState game_state, const LevelId& current_level)
 {
     BeginDrawing();
     ClearBackground(BLACK);
@@ -128,7 +129,7 @@ void render_scene(Texture& player_texture, const std::vector<Projectile>& projec
 	draw_frame(screen_width, screen_height);
 
     // Интерфейс (многострочный текст слева)
-    draw_ui(player, level_time, game_state);
+    draw_ui(player, level_time, game_state, current_level);
 
     EndDrawing();
 }
