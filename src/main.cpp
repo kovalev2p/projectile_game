@@ -200,9 +200,9 @@ void update_projectiles(std::vector<Projectile>& projectiles, Player& player, Ga
     projectiles.erase(iter, projectiles.end());
     
     bool dead = false;
-    if (hit_count > 0) {
+    if (hit_count > 0 && player.invincible_until < level_time) {
         dead = player.hit(1);
-        player.invincible_until = level_time + 1.0f;
+        player.invincible_until = level_time + 0.5f;
     }
     if (dead) game_state = GameState::GAME_OVER;
 }
