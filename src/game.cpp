@@ -209,8 +209,8 @@ void level_way_init(std::vector<AttackEvent>& events, Player& player)
     // 1. Два расходящихся луча из центра верха
     {
         float start_time = 0.0f;
-        float interval = 0.12f;
-        int count = 12;
+        float interval = 0.2f;
+        int count = 15;
         float radius = 10.0f;
 
         add_beam_events(events, start_time, interval, count,
@@ -260,17 +260,16 @@ void level_way_init(std::vector<AttackEvent>& events, Player& player)
             spawn_circular_burst(p, { bomb1_start.x, WORLD_SIZE / 2.0f }, 160.0f, 10, 8);
             // Вторая бомба – взрыв лучами
             add_beam_burst(events, explosion_time, { bomb2_start.x, WORLD_SIZE / 2.0f },
-                           6, 0.15f, 10, 180.0f, 10);
+                           6, 0.2f, 15, 180.0f, 10);
             // Сортировка событий после добавления новых
             sort_attack_events(events);
         }});
     }
 
-    // 4. Веер из пяти лучей + горизонтальный луч
+    // 4. Веер из пяти лучей + линия и луч слева
     {
         float start_time = 12.0f;
-        float interval = 0.12f;
-        int count = 12;
+        float interval = 0.2f;
         float speed = 200.0f;
         float radius = 10.0f;
         Vector2 center_top = { WORLD_SIZE / 2.0f, 0 };
@@ -278,11 +277,14 @@ void level_way_init(std::vector<AttackEvent>& events, Player& player)
 
         // веер
         add_fan_attack(events, start_time, center_top, angles,
-                       interval, count, speed, radius);
-
+                       interval, 12, speed, radius);
         // Горизонтальный луч из левой границы
-        add_beam_events(events, start_time, interval, count,
-                        { 0, 700.0f }, { 200.0f, 0 }, radius);
+        add_beam_events(events, start_time, interval, 20,
+                        { 0, WORLD_SIZE*2/3 }, { 200.0f, 0 }, radius);
+        // линия снизу
+        events.push_back({start_time, [=](float dt, std::vector<Projectile>& p, Player&) {
+            spawn_bullet_line(p, {200, 0}, dt, {0, WORLD_SIZE*2/3}, {0, WORLD_SIZE}, radius*2.5, radius);
+        }});
     }
 
     // 5. Прицельная пуля + встречная линия снизу
@@ -299,23 +301,23 @@ void level_way_init(std::vector<AttackEvent>& events, Player& player)
         }});
     }
 
-    // 6. Два встречных веера (по 3 луча каждый)
+    // 6. Два встречных веера
     {
         float start_time = 20.0f;
-        float interval = 0.15f;
-        int count = 8;
+        float interval = 0.2f;
+        int count = 15;
         float speed = 180.0f;
         float radius = 10.0f;
 
-        // Веер из левой границы: углы -30°, 0°, +30° относительно направления вправо (90°)
+        // Веер из левой границы относительно направления вправо (90°)
         Vector2 left_center = { 0, WORLD_SIZE / 2.0f };
-        std::vector<float> left_angles = { 60.0f, 90.0f, 120.0f };
+        std::vector<float> left_angles = { 90-60, 90-30, 90+0, 90+30, 90+60 };
         add_fan_attack(events, start_time, left_center, left_angles,
                        interval, count, speed, radius);
 
-        // Веер из правой границы: углы 240°, 270°, 300° (налево)
+        // Веер из правой границы относительно направления вправо (270°)
         Vector2 right_center = { WORLD_SIZE, WORLD_SIZE / 2.0f };
-        std::vector<float> right_angles = { 240.0f, 270.0f, 300.0f };
+        std::vector<float> right_angles = { 270-60, 270-30, 270+0, 270+30, 270+60 };
         add_fan_attack(events, start_time, right_center, right_angles,
                        interval, count, speed, radius);
     }
@@ -362,7 +364,7 @@ void level_way_init(std::vector<AttackEvent>& events, Player& player)
             float second_explosion_time = explosion_time + crossing_time;
 
             events.push_back({second_explosion_time, [](float, std::vector<Projectile>& pr, Player&) {
-                spawn_circular_burst(pr, { WORLD_SIZE/2.0f, WORLD_SIZE/2.0f }, 200.0f, 10, 16);
+                spawn_circular_burst(pr, { WORLD_SIZE/2.0f, WORLD_SIZE/2.0f }, 200.0f, 10, 18);
             }});
             
             // Сортировка событий после добавления новых
