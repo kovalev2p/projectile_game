@@ -127,10 +127,10 @@ void move_player_wasd(Player& player)
 
 	// Управление WASD
 	Vector2 move = { 0, 0 };
-	if (IsKeyDown(KEY_W)) move.y -= 1;
-	if (IsKeyDown(KEY_S)) move.y += 1;
-	if (IsKeyDown(KEY_A)) move.x -= 1;
-	if (IsKeyDown(KEY_D)) move.x += 1;
+	if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP)) move.y -= 1;
+	if (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN)) move.y += 1;
+	if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) move.x -= 1;
+	if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) move.x += 1;
 	if (move.x != 0 || move.y != 0) move = Vector2Normalize(move); // нормализация скорости
 
 	// Обновление позиции
