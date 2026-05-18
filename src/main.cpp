@@ -315,20 +315,20 @@ void level_beginning_init(std::vector<AttackEvent>& events, Player& player)
     events.push_back({0.0f, [](float dt, std::vector<Projectile>& p, Player&) {
         spawn_bullet_line(p, {0, 180}, dt, {WORLD_SIZE/2.0f, 0}, {WORLD_SIZE, 0}, 10*2+5, 10);
     }});
-    events.push_back({2.0f, [](float dt, std::vector<Projectile>& p, Player&) {
+    events.push_back({2.5f, [](float dt, std::vector<Projectile>& p, Player&) {
         spawn_bullet_line(p, {0, 180}, dt, {0, 0}, {WORLD_SIZE/2.0f, 0}, 10*2+5, 10);
     }});
 
     // TODO: увеличить время между атаками (не только этими)
 
     // Атака 2: широкая линия с щелями
-    events.push_back({2.5f, [](float dt, std::vector<Projectile>& p, Player&) {
-        spawn_bullet_line(p, {0, 180}, dt, {0, 0}, {WORLD_SIZE, 0}, 150, 10);
+    events.push_back({4.7f, [](float dt, std::vector<Projectile>& p, Player&) {
+        spawn_bullet_line(p, {0, 180}, dt, {0, 0}, {WORLD_SIZE, 0}, 140, 10);
     }});
 
     // Атака 3: большая бомба с взрывом в центре
     {
-        float bomb_drop_time = 5.0f;
+        float bomb_drop_time = 10.0f;
         float bomb_vel_y = 150.0f;
         float bomb_radius = 20.0f;
         Vector2 bomb_start = { WORLD_SIZE/2.0f, 0 };
@@ -363,7 +363,7 @@ void level_beginning_init(std::vector<AttackEvent>& events, Player& player)
 
     // Атака 4: три луча сверху (веер после взрыва)
     {
-        float start_beam_trio = 9.5f;
+        float start_beam_trio = 16.0f;
         float beam_interval = 0.2f;
         int bullets_per_beam = 20;
         float radius = 10;
@@ -373,9 +373,9 @@ void level_beginning_init(std::vector<AttackEvent>& events, Player& player)
 
     // Атака 5: горизонтальные встречные лучи
     {
-        float start_horizontal = 11.0f;
+        float start_horizontal = 20.0f;
         float interval = 0.2f;
-        int count = 30;
+        int count = 40;
         float radius = 10;
         // Луч слева направо (верхняя треть)
         add_beam_events(events, start_horizontal, interval, count,
@@ -386,15 +386,15 @@ void level_beginning_init(std::vector<AttackEvent>& events, Player& player)
     }
 
     // Атака 6: большая прицельная пуля
-    events.push_back({12.5f, [](float dt, std::vector<Projectile>& p, Player& pl) {
+    events.push_back({22.0f, [](float dt, std::vector<Projectile>& p, Player& pl) {
         // Случайная X от 100 до 924
         float x = 100 + static_cast<float>(rand()) / RAND_MAX * (WORLD_SIZE - 200);
-        spawn_targeted_bullet(p, {x, 0}, pl.pos, 150.0f, 12.0f);
+        spawn_targeted_bullet(p, {x, 0}, pl.pos, 150.0f, 20);
     }});
 
     // Атака 7: веер из пяти лучей
     {
-        float start_fan = 14.0f;
+        float start_fan = 30.0f;
         float interval = 0.2f;
         int bullets_per_beam = 15;
         float speed = 200;
@@ -407,9 +407,9 @@ void level_beginning_init(std::vector<AttackEvent>& events, Player& player)
 
     // Атака 8: вторая бомба с взрывом лучами
     {
-        float bomb_drop_time = 15.5f;
+        float bomb_drop_time = 37.0f;
         float bomb_vel_y = 150.0f;
-        float bomb_radius = 15.0f;
+        float bomb_radius = 20.0f;
         Vector2 bomb_start = { WORLD_SIZE/2.0f, 0 };
         float travel_time = (WORLD_SIZE/2.0f) / bomb_vel_y;
         float explosion_time = bomb_drop_time + travel_time;
