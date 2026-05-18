@@ -361,32 +361,22 @@ void level_beginning_init(std::vector<AttackEvent>& events, Player& player)
         }});
     }
 
-    // Атака 4: три луча сверху (после взрыва)
-    // TODO: заменить на веер
+    // Атака 4: три луча сверху (веер после взрыва)
     {
         float start_beam_trio = 9.5f;
         float beam_interval = 0.2f;
         int bullets_per_beam = 20;
-        Vector2 vel_down = { 0, 200 };
         float radius = 10;
-
-        // Луч из x=300
-        add_beam_events(events, start_beam_trio, beam_interval, bullets_per_beam,
-                        {300, 0}, vel_down, radius);
-        // Луч из x=512
-        add_beam_events(events, start_beam_trio, beam_interval, bullets_per_beam,
-                        {512, 0}, vel_down, radius);
-        // Луч из x=724
-        add_beam_events(events, start_beam_trio, beam_interval, bullets_per_beam,
-                        {724, 0}, vel_down, radius);
+        
+        add_fan_attack(events, start_beam_trio, {WORLD_SIZE/2, 0}, {-45, 0, 45}, beam_interval, bullets_per_beam, 200, radius);
     }
 
     // Атака 5: горизонтальные встречные лучи
     {
         float start_horizontal = 11.0f;
-        float interval = 0.12f;
-        int count = 8;
-        float radius = 6;
+        float interval = 0.2f;
+        int count = 30;
+        float radius = 10;
         // Луч слева направо (верхняя треть)
         add_beam_events(events, start_horizontal, interval, count,
                         {0, WORLD_SIZE/3}, {200, 0}, radius);
@@ -403,13 +393,12 @@ void level_beginning_init(std::vector<AttackEvent>& events, Player& player)
     }});
 
     // Атака 7: веер из пяти лучей
-    // TODO: увеличить веер
     {
         float start_fan = 14.0f;
-        float interval = 0.1f;
-        int bullets_per_beam = 5;
+        float interval = 0.2f;
+        int bullets_per_beam = 15;
         float speed = 200;
-        float radius = 5;
+        float radius = 10;
         Vector2 center_top = { WORLD_SIZE/2.0f, 0 };
         std::vector<float> angles = {-40, -20, 0, 20, 40};
 
@@ -417,7 +406,6 @@ void level_beginning_init(std::vector<AttackEvent>& events, Player& player)
     }
 
     // Атака 8: вторая бомба с взрывом лучами
-    // TODO: уменьшить длительность (кол-во пуль)
     {
         float bomb_drop_time = 15.5f;
         float bomb_vel_y = 150.0f;
@@ -448,10 +436,11 @@ void level_beginning_init(std::vector<AttackEvent>& events, Player& player)
                     break;
                 }
             }
-            // Взрыв лучами 
+            // Взрыв лучами
+            int bullets_per_beam = 20;
             add_beam_burst(events, explosion_time, { WORLD_SIZE/2.0f, WORLD_SIZE/2.0f },
-                        8, 0.2f, 30, 180.0f, 10);
-
+                        8, 0.2f, bullets_per_beam, 180.0f, 10);
+            
             // поскольку создаются новые события, нужно снова отсортировать
             sort_attack_events(events);
         }});
