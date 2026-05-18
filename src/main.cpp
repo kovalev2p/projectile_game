@@ -286,6 +286,19 @@ void spawn_targeted_bullet(std::vector<Projectile>& projectiles, Vector2 start, 
     projectiles.push_back(p);
 }
 
+void add_fan_attack(
+    std::vector<AttackEvent>& events, float start_time, Vector2 origin_pos, std::vector<float> angles,
+    float interval, int bullets_per_beam, float speed, float bullet_radius
+)
+{
+    for (float angle_deg : angles) {
+        float rad = angle_deg * PI / 180.0f;
+        Vector2 vel = { speed * sinf(rad), speed * cosf(rad) };
+        add_beam_events(events, start_time, interval, bullets_per_beam,
+                        origin_pos, vel, bullet_radius);
+    }
+}
+
 void level_beginning_init(std::vector<AttackEvent>& events, Player& player)
 {
     player.health = 3;
@@ -391,14 +404,9 @@ void level_beginning_init(std::vector<AttackEvent>& events, Player& player)
         float speed = 200;
         float radius = 5;
         Vector2 center_top = { WORLD_SIZE/2.0f, 0 };
-        // Углы: -40, -20, 0, +20, +40 градусов
-        float angles[] = {-40, -20, 0, 20, 40};
-        for (float angle_deg : angles) {
-            float rad = angle_deg * PI / 180.0f;
-            Vector2 vel = { speed * sinf(rad), speed * cosf(rad) }; // cos для вертикали
-            add_beam_events(events, start_fan, interval, bullets_per_beam,
-                            center_top, vel, radius);
-        }
+        std::vector<float> angles = {-40, -20, 0, 20, 40};
+
+        add_fan_attack(events, start_fan, center_top, angles, interval, bullets_per_beam, speed, radius);
     }
 
     // Атака 8: вторая бомба с взрывом лучами
