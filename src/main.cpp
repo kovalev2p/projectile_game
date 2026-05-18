@@ -319,8 +319,6 @@ void level_beginning_init(std::vector<AttackEvent>& events, Player& player)
         spawn_bullet_line(p, {0, 180}, dt, {0, 0}, {WORLD_SIZE/2.0f, 0}, 10*2+5, 10);
     }});
 
-    // TODO: увеличить время между атаками (не только этими)
-
     // Атака 2: широкая линия с щелями
     events.push_back({4.7f, [](float dt, std::vector<Projectile>& p, Player&) {
         spawn_bullet_line(p, {0, 180}, dt, {0, 0}, {WORLD_SIZE, 0}, 140, 10);
