@@ -9,6 +9,28 @@ const std::vector<std::string> level_names = {
     "Way",
 };
 
+std::vector<std::string> get_visible_level_names() {
+    std::vector<std::string> visible;
+    for (size_t i = 0; i < level_names.size(); ++i) {
+        LevelId id = static_cast<LevelId>(i);
+        if (debug_mode || (id != LevelId::EMPTY && id != LevelId::TEST && id != LevelId::TEST_HP)) {
+            visible.push_back(level_names[i]);
+        }
+    }
+    return visible;
+}
+
+std::vector<LevelId> get_visible_level_ids() {
+    std::vector<LevelId> visible;
+    for (size_t i = 0; i < level_names.size(); ++i) {
+        LevelId id = static_cast<LevelId>(i);
+        if (debug_mode || (id != LevelId::EMPTY && id != LevelId::TEST && id != LevelId::TEST_HP)) {
+            visible.push_back(id);
+        }
+    }
+    return visible;
+}
+
 bool Player::hit(int damage) {
     if (damage>0) hit_count += damage;
     if ((!immortal) || (damage<0)) health -= damage;

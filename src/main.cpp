@@ -2,6 +2,8 @@
 #include "render.h"
 #include "resource_dir.h"	// utility header for SearchAndSetResourceDir
 
+bool debug_mode = false;
+
 int main ()
 {
 	create_main_window();
@@ -30,24 +32,34 @@ int main ()
 	LevelId current_level = LevelId::EMPTY; // временное значение, будет перезаписано при старте
     bool reset_level = true;
 
+    std::vector<std::string> visible_level_names = get_visible_level_names();
+    std::vector<LevelId> visible_level_ids = get_visible_level_ids();
+
     SetExitKey(KEY_NULL); // don't close by ESC
 	// game loop
 	while (!WindowShouldClose())
 	{
+        if (IsKeyPressed(KEY_F3)) {
+            debug_mode = !debug_mode;
+            // Обновить списки видимых уровней
+            visible_level_names = get_visible_level_names();
+            visible_level_ids = get_visible_level_ids();
+            // Сбросить выбранный уровень, если он стал невидимым
+            if (selected_level >= visible_level_names.size()) selected_level = 0;
+        }
 		if (state == GameState::MENU)
 		{
 			// Управление в меню
 			if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W) || IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A))
-				selected_level = (selected_level - 1 + level_names.size()) % level_names.size();
-			if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S) || IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D))
-				selected_level = (selected_level + 1) % level_names.size();
-			if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER) || IsKeyPressed(KEY_SPACE))
-			{
-				current_level = static_cast<LevelId>(selected_level);
-				reset_game_state(projectiles, level_time, player);
-				state = GameState::PLAYING;
+            selected_level = (selected_level - 1 + visible_level_names.size()) % visible_level_names.size();
+            if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S) || IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D))
+                selected_level = (selected_level + 1) % visible_level_names.size();
+            if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER) || IsKeyPressed(KEY_SPACE)) {
+                current_level = visible_level_ids[selected_level];
+                reset_game_state(projectiles, level_time, player);
+                state = GameState::PLAYING;
                 reset_level = true;
-			}
+            }
 			if (IsKeyPressed(KEY_ESCAPE))
 			{
 				break; // close window
@@ -57,9 +69,9 @@ int main ()
 			BeginDrawing();
 			ClearBackground(BLACK);
 			draw_frame(GetScreenWidth(), GetScreenHeight());
-			// рисуем только FPS в левом верхнем углу
-			DrawText(TextFormat("FPS: %d", GetFPS()), 10, 10, 20, WHITE);
-			draw_menu(selected_level);
+			// рисуем только FPS в левом верхнем углу (в режиме отладки)
+			if (debug_mode) DrawText(TextFormat("FPS: %d", GetFPS()), 10, 10, 20, WHITE);
+			draw_menu(selected_level, visible_level_names);
 			EndDrawing();
 		}
 		else if (state == GameState::PLAYING)

@@ -13,6 +13,8 @@
 
 const float small_number = 1e-6;
 
+extern bool debug_mode;
+
 // Состояния игры
 enum class GameState {
     MENU,
@@ -90,3 +92,5 @@ bool update_level(std::vector<Projectile>& projectiles, const float level_time,
 
 void reset_game_state(std::vector<Projectile>& projectiles, float& level_time, Player& player);
 void update_player_height(Texture& player_texture, float& player_height, const float& player_width);
+std::vector<std::string> get_visible_level_names();
+std::vector<LevelId> get_visible_level_ids();

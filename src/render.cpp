@@ -59,11 +59,13 @@ void draw_ui(const Player& player, float level_time, const GameState game_state)
     // Формируем строки для отображения
     std::vector<std::string> lines;
     // lines.push_back("Projectile game");
-    lines.push_back("Collisions: " + std::to_string(player.hit_count));
-    lines.push_back("FPS: " + std::to_string(GetFPS()));
-    lines.push_back("Screen res: (" + std::to_string(GetScreenWidth()) + ", " + std::to_string(GetScreenHeight()) + ")");
-    lines.push_back("Player pos: (" + std::format("{:.1f}", player.pos.x) + ", " + std::format("{:.1f}", player.pos.y) + ")");
-    lines.push_back("Level time: " + std::format("{:.3f}", level_time) + " s");
+    if (debug_mode || player.immortal) lines.push_back("Collisions: " + std::to_string(player.hit_count));
+    if (debug_mode) {
+        lines.push_back("FPS: " + std::to_string(GetFPS()));
+        lines.push_back("Screen res: (" + std::to_string(GetScreenWidth()) + ", " + std::to_string(GetScreenHeight()) + ")");
+        lines.push_back("Player pos: (" + std::format("{:.1f}", player.pos.x) + ", " + std::format("{:.1f}", player.pos.y) + ")");
+        lines.push_back("Level time: " + std::format("{:.3f}", level_time) + " s");
+    }
     lines.push_back("HP: " + std::format("{}", player.health));
     if (player.immortal) lines.push_back("Immortal");
     if (game_state == GameState::GAME_OVER) lines.push_back("Game over!");
@@ -108,18 +110,20 @@ void render_scene(Texture& player_texture, const std::vector<Projectile>& projec
     );
 
     // Отрисовка хитбокса игрока
-    Vector2 width_height_vector = (Vector2){
-        world_to_screen(player.width, screen_width, screen_height),
-        world_to_screen(player.height, screen_width, screen_height)
-    };
-    Vector2 hitbox_topleft = world_to_screen(player.pos, screen_width, screen_height) - width_height_vector / 2.0;
-    DrawRectangleLinesEx(
-        (Rectangle){
-            hitbox_topleft.x, hitbox_topleft.y,
-            width_height_vector.x, width_height_vector.y
-        },
-        2.0f, BLUE
-    );
+    if (debug_mode) {
+        Vector2 width_height_vector = (Vector2){
+            world_to_screen(player.width, screen_width, screen_height),
+            world_to_screen(player.height, screen_width, screen_height)
+        };
+        Vector2 hitbox_topleft = world_to_screen(player.pos, screen_width, screen_height) - width_height_vector / 2.0;
+        DrawRectangleLinesEx(
+            (Rectangle){
+                hitbox_topleft.x, hitbox_topleft.y,
+                width_height_vector.x, width_height_vector.y
+            },
+            2.0f, BLUE
+        );
+    }
 
 	draw_frame(screen_width, screen_height);
 
@@ -129,19 +133,19 @@ void render_scene(Texture& player_texture, const std::vector<Projectile>& projec
     EndDrawing();
 }
 
-void draw_menu(int selected_level)
+void draw_menu(int selected_level, const std::vector<std::string>& visible_level_names)
 {
     int screen_width = GetScreenWidth();
     int screen_height = GetScreenHeight();
     int start_x = screen_width - 400;
-    int start_y = screen_height / 2 - (level_names.size() * 30) / 2;
+    int start_y = screen_height / 2 - (visible_level_names.size() * 30) / 2;
     int line_height = 35;
     int font_size = 25;
 
     DrawText("SELECT LEVEL", start_x, start_y - 40, font_size, YELLOW);
-    for (size_t i = 0; i < level_names.size(); ++i) {
+    for (size_t i = 0; i < visible_level_names.size(); ++i) {
         std::string prefix = (i == (size_t)selected_level) ? "> " : "  ";
-        std::string line = prefix + level_names[i];
+        std::string line = prefix + visible_level_names[i];
         Color color = (i == (size_t)selected_level) ? GREEN : WHITE;
         DrawText(line.c_str(), start_x, start_y + i * line_height, font_size, color);
     }
