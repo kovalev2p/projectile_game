@@ -299,6 +299,13 @@ void add_fan_attack(
     }
 }
 
+void sort_attack_events(std::vector<AttackEvent>& events) {
+    // sorts by time in ascending order
+    std::sort(events.begin(), events.end(), [](AttackEvent event1, AttackEvent event2){
+        return event1.time < event2.time;
+    });
+}
+
 void level_beginning_init(std::vector<AttackEvent>& events, Player& player)
 {
     player.health = 3;
@@ -446,17 +453,11 @@ void level_beginning_init(std::vector<AttackEvent>& events, Player& player)
                         8, 0.2f, 30, 180.0f, 10);
 
             // поскольку создаются новые события, нужно снова отсортировать
-            // TODO: вынести сортировку в функцию
-            std::sort(events.begin(), events.end(), [](AttackEvent event1, AttackEvent event2){
-                return event1.time < event2.time;
-            });
+            sort_attack_events(events);
         }});
     }
 
-    std::sort(events.begin(), events.end(), [](AttackEvent event1, AttackEvent event2){
-        return event1.time < event2.time;
-    });
-    return;
+    sort_attack_events(events);
 }
 
 bool level_test_hp(std::vector<Projectile>& projectiles, const float level_time, const bool reset_level, Player& player)
