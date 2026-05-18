@@ -403,7 +403,7 @@ void level_beginning_init(std::vector<AttackEvent>& events, Player& player)
         add_fan_attack(events, start_fan, center_top, angles, interval, bullets_per_beam, speed, radius);
     }
 
-    // Атака 8: вторая бомба с взрывом лучами
+    // Атака 8: вторая бомба с взрывом лучами + линия
     {
         float bomb_drop_time = 40.0f;
         float bomb_vel_y = 150.0f;
@@ -419,6 +419,11 @@ void level_beginning_init(std::vector<AttackEvent>& events, Player& player)
             bomb.vel = { 0, bomb_vel_y };
             bomb.r = bomb_radius;
             p.push_back(bomb);
+        }});
+
+        // широкая линия с щелями
+        events.push_back({explosion_time, [](float dt, std::vector<Projectile>& p, Player&) {
+            spawn_bullet_line(p, {0, 180}, dt, {0, 0}, {WORLD_SIZE, 0}, 140, 10);
         }});
 
         // Взрыв: удаляем бомбу и добавляем burst лучей
