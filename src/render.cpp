@@ -49,7 +49,7 @@ void create_main_window()
 	SetWindowMinSize(min_window_width, min_window_height);
 }
 
-void draw_ui(const Player& player, float level_time, const GameState game_state, const LevelId& current_level)
+void draw_ui(const Player& player, float level_time, const GameState game_state, const LevelId& current_level, const std::vector<Projectile>& projectiles)
 {
     int start_x = 10;
     int start_y = 10;
@@ -66,6 +66,7 @@ void draw_ui(const Player& player, float level_time, const GameState game_state,
         lines.push_back("Screen res: (" + std::to_string(GetScreenWidth()) + ", " + std::to_string(GetScreenHeight()) + ")");
         lines.push_back("Player pos: (" + std::format("{:.1f}", player.pos.x) + ", " + std::format("{:.1f}", player.pos.y) + ")");
         lines.push_back("Level time: " + std::format("{:.3f}", level_time) + " s");
+        lines.push_back("Projectile count: " + std::to_string(projectiles.size()));
     }
     lines.push_back("HP: " + std::format("{}", player.health));
     if (player.immortal) lines.push_back("Immortal");
@@ -129,7 +130,7 @@ void render_scene(Texture& player_texture, const std::vector<Projectile>& projec
 	draw_frame(screen_width, screen_height);
 
     // Интерфейс (многострочный текст слева)
-    draw_ui(player, level_time, game_state, current_level);
+    draw_ui(player, level_time, game_state, current_level, projectiles);
 
     EndDrawing();
 }
